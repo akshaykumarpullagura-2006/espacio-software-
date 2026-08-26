@@ -129,23 +129,23 @@ export function DashboardClient({ initialData, initialApprovals, user }: Dashboa
   const renderQuickIcon = (iconName: string) => {
     switch (iconName) {
       case "Users":
-        return <Users className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <Users className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       case "FolderKanban":
-        return <FolderKanban className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <FolderKanban className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       case "Wallet":
-        return <Wallet className="w-4 h-4 text-gold group-hover:text-charcoal" />;
+        return <Wallet className="w-3.5 h-3.5 text-gold group-hover:text-charcoal transition-colors" />;
       case "Receipt":
-        return <Receipt className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <Receipt className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       case "FileText":
-        return <FileText className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <FileText className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       case "Building2":
-        return <Building2 className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <Building2 className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       case "ShoppingCart":
-        return <ShoppingCart className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <ShoppingCart className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       case "PieChart":
-        return <PieChart className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <PieChart className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
       default:
-        return <FolderKanban className="w-4 h-4 text-walnut group-hover:text-charcoal" />;
+        return <FolderKanban className="w-3.5 h-3.5 text-walnut group-hover:text-charcoal transition-colors" />;
     }
   };
 
@@ -235,6 +235,31 @@ export function DashboardClient({ initialData, initialApprovals, user }: Dashboa
           initialData={initialApprovals}
           onActionComplete={handleManualRefresh}
         />
+      )}
+
+      {/* Quick Enterprise Shortcuts (Compact at Top of Dashboard) */}
+      {data.quickAccess && data.quickAccess.length > 0 && (
+        <div className="min-w-0 w-full">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-walnut/90 mb-2 flex items-center gap-1.5">
+            <span>Quick Enterprise Shortcuts</span>
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 min-w-0 w-full">
+            {data.quickAccess.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                className="py-2 px-2.5 bg-offwhite border border-walnut/15 rounded-lg shadow-2xs hover:border-gold hover:shadow-xs transition-all flex flex-col items-center justify-center gap-1.5 text-center group min-w-0"
+              >
+                <div className="p-1.5 rounded-md bg-cream/70 border border-walnut/15 group-hover:bg-gold-soft group-hover:border-gold/40 group-hover:scale-105 transition-all shrink-0">
+                  {renderQuickIcon(item.iconName)}
+                </div>
+                <span className="text-[11px] font-semibold text-charcoal group-hover:text-charcoal transition-colors truncate w-full" title={item.label}>
+                  {item.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* 2. Primary KPI Row (6 Mandatory Executive Cards) */}
@@ -702,29 +727,6 @@ export function DashboardClient({ initialData, initialApprovals, user }: Dashboa
           </div>
         )}
       </Card>
-
-      {/* 7. Quick Access Shortcuts to Modules (Mandatory 12) */}
-      <div className="min-w-0 w-full">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-charcoal mb-3 flex items-center gap-2">
-          <span>Quick Enterprise Shortcuts</span>
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 min-w-0 w-full">
-          {data.quickAccess.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className="p-3 bg-offwhite border border-walnut/15 rounded-lg shadow-2xs hover:border-gold hover:shadow-md transition-all flex flex-col items-center justify-center gap-1.5 text-center group min-w-0"
-            >
-              <div className="p-2 rounded-md bg-cream/70 border border-walnut/15 group-hover:bg-gold-soft group-hover:border-gold/40 group-hover:scale-110 transition-all shrink-0">
-                {renderQuickIcon(item.iconName)}
-              </div>
-              <span className="text-xs font-bold text-charcoal group-hover:text-charcoal transition-colors truncate w-full" title={item.label}>
-                {item.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
 
       {/* Custom Date Range Modal */}
       {showCustomModal && (
