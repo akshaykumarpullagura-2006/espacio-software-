@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Official ESPACIO Brand Tokens */
+  --color-background: #F6EFE3;      /* Primary Warm Cream */
+  --color-surface: #ECF4F0;         /* Secondary Cool Off-White */
+  --color-surface-elevated: #FDFBF7;/* Subtle Warm Elevated Card */
+  --color-accent: #F2B455;          /* Warm Gold (Primary Accent / CTA) */
+  --color-accent-hover: #E0A03D;    /* Warm Gold Hover */
+  --color-accent-soft: #FAF0DF;     /* Warm Gold Subtle Tint */
+  --color-secondary: #6F5642;       /* Walnut Brown (Secondary Text) */
+  --color-border: rgba(111, 86, 66, 0.16); /* Walnut Brown Border */
+  --color-border-subtle: rgba(111, 86, 66, 0.09);
+  --color-text: #4A433D;            /* Deep Charcoal (Primary Text) */
+  --color-text-secondary: #6F5642;  /* Walnut Brown (Secondary Text) */
+
+  /* Restrained Business Semantic Colors */
+  --color-success: #2E7D52;
+  --color-success-bg: #EAF4EE;
+  --color-success-border: #BCE0CA;
+  
+  --color-warning: #D9822B;
+  --color-warning-bg: #FDF5EA;
+  --color-warning-border: #F7D7A4;
+
+  --color-danger: #C24138;
+  --color-danger-bg: #FDF0EE;
+  --color-danger-border: #F7C5C0;
+
+  --color-info: #3B6978;
+  --color-info-bg: #EEF5F8;
+  --color-info-border: #C2DCE4;
+}
+
+@layer base {
+  html {
+    background-color: #F6EFE3;
+  }
+
+  body {
+    background-color: #F6EFE3;
+    color: #4A433D;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: rgba(242, 180, 85, 0.35);
+    color: #4A433D;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #4A433D;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Warm Walnut scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(111, 86, 66, 0.22);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 86, 66, 0.4);
+}
