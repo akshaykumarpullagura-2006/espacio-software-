@@ -591,37 +591,66 @@ export function DashboardClient({ initialData, initialApprovals, user }: Dashboa
                 <p className="text-walnut text-[11px]">No urgent client calls or scheduled tasks pending today.</p>
               </div>
             ) : (
-              <div className="space-y-2.5 divide-y divide-walnut/10">
+              <div className="space-y-2.5">
                 {data.followUps.items.map((item) => (
-                  <div key={item.id} className="pt-2.5 first:pt-0 flex items-center justify-between text-xs gap-3">
+                  <div
+                    key={item.id}
+                    className="p-3 bg-cream/40 rounded-lg border border-walnut/15 hover:border-gold/50 hover:bg-cream/60 transition-all flex items-center justify-between gap-3 min-w-0"
+                  >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-charcoal truncate">{item.clientOrLeadName}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-cream text-walnut border border-walnut/20 text-[10px] font-mono">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {item.type === "TASK" ? (
+                          <CheckSquare className="w-3.5 h-3.5 text-gold shrink-0" />
+                        ) : (
+                          <PhoneCall className="w-3.5 h-3.5 text-gold shrink-0" />
+                        )}
+                        <span className="font-bold text-xs text-charcoal truncate">
+                          {item.type === "TASK" ? item.title : item.clientOrLeadName}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-offwhite text-walnut border border-walnut/20 text-[10px] font-mono font-bold shrink-0">
                           {item.referenceNo}
                         </span>
-                        {item.status === "OVERDUE" && (
-                          <span className="px-1.5 py-0.5 rounded bg-semantic-danger-bg text-semantic-danger border border-semantic-danger-border text-[10px] font-bold">
+                        {item.status === "OVERDUE" ? (
+                          <span className="px-1.5 py-0.5 rounded bg-semantic-danger-bg text-semantic-danger border border-semantic-danger-border text-[10px] font-bold shrink-0">
                             Overdue
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-gold-soft text-charcoal border border-gold/40 text-[10px] font-semibold shrink-0">
+                            Due Today
                           </span>
                         )}
                       </div>
-                      <p className="text-walnut text-[11px] mt-0.5 flex items-center gap-3">
-                        <span>{item.title}</span>
-                        {item.phone && <span>📞 {item.phone}</span>}
-                      </p>
+                      <div className="text-walnut text-[11px] mt-1 pl-5.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        {item.type === "TASK" ? (
+                          <>
+                            {item.clientOrLeadName && item.clientOrLeadName !== "General Task" && (
+                              <span className="text-charcoal/80 font-medium truncate">
+                                🏢 {item.clientOrLeadName}
+                              </span>
+                            )}
+                            <span className="text-walnut truncate">
+                              👤 {item.assignedUserName ? `Assigned: ${item.assignedUserName}` : "Unassigned"}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{item.title}</span>
+                            {item.phone && <span className="font-mono">📞 {item.phone}</span>}
+                          </>
+                        )}
+                      </div>
                     </div>
                     <Link
                       href={item.actionUrl}
-                      className="px-3 py-1.5 bg-gold text-charcoal rounded-md text-xs font-bold hover:bg-gold-hover transition-colors shadow-gold whitespace-nowrap flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1.5 bg-gold text-charcoal rounded-md text-xs font-bold hover:bg-gold-hover transition-colors shadow-2xs whitespace-nowrap flex items-center gap-1.5 cursor-pointer shrink-0"
                     >
                       {item.type === "LEAD_FOLLOWUP" ? (
                         <>
-                          <PhoneCall className="w-3 h-3" /> Follow up
+                          <PhoneCall className="w-3.5 h-3.5" /> Follow up
                         </>
                       ) : (
                         <>
-                          <CheckSquare className="w-3 h-3" /> View Task
+                          <CheckSquare className="w-3.5 h-3.5" /> View Task
                         </>
                       )}
                     </Link>

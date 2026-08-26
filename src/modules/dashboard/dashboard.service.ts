@@ -225,6 +225,9 @@ export class DashboardMetricsService {
             status: true,
             dueAt: true,
             assignee: { select: { fullName: true } },
+            project: { select: { title: true } },
+            client: { select: { fullName: true } },
+            lead: { select: { clientName: true } },
           },
         }),
 
@@ -368,17 +371,20 @@ export class DashboardMetricsService {
         phone: f.lead?.phone || undefined,
         actionUrl: `/leads?search=${encodeURIComponent(f.lead?.referenceNo || "")}`,
       })),
-      ...todayTasks.map((t) => ({
-        id: t.id,
-        type: "TASK" as const,
-        title: t.title,
-        clientOrLeadName: t.assignee?.fullName || "Assigned Team",
-        referenceNo: t.referenceNo,
-        dueAt: (t.dueAt || now).toISOString(),
-        status: (t.dueAt && t.dueAt < startOfToday ? "OVERDUE" : "PENDING") as "PENDING" | "OVERDUE",
-        assignedUserName: t.assignee?.fullName || undefined,
-        actionUrl: `/tasks`,
-      })),
+      ...todayTasks.map((t) => {
+        const contextEntity = t.project?.title || t.client?.fullName || t.lead?.clientName || undefined;
+        return {
+          id: t.id,
+          type: "TASK" as const,
+          title: t.title,
+          clientOrLeadName: contextEntity || "General Task",
+          referenceNo: t.referenceNo,
+          dueAt: (t.dueAt || now).toISOString(),
+          status: (t.dueAt && t.dueAt < startOfToday ? "OVERDUE" : "PENDING") as "PENDING" | "OVERDUE",
+          assignedUserName: t.assignee?.fullName || undefined,
+          actionUrl: `/tasks`,
+        };
+      }),
     ];
 
     // 7. Format Recent Activities
