@@ -66,7 +66,7 @@ export class LeadConversionService {
           leadId: lead.id,
           title: projectTitle,
           clientId: clientId,
-          stage: "INITIATED",
+          stage: "CONFIRMATION_FEE_PAID",
           propertyTypeKey: lead.propertyTypeKey || "APARTMENT_INTERIOR",
           contractValue: contractValue,
           revisedBudget: contractValue,
@@ -74,23 +74,35 @@ export class LeadConversionService {
         },
       });
 
-      // Link all quotations of this lead to the newly created project and client
-      await tx.quotation.updateMany({
-        where: { leadId: lead.id },
-        data: {
-          projectId: project.id,
-          clientId: clientId,
-        },
-      });
+      if (approvedQuote) {
+        await tx.quotation.update({
+          where: { id: approvedQuote.id },
+          data: {
+            projectId: project.id,
+            clientId: clientId,
+          },
+        });
+      }
 
       const updatedLead = await tx.lead.update({
         where: { id: lead.id },
         data: {
-          stage: "WON",
+          stage: "PROJECT_CREATED",
         },
       });
 
-      return { client: lead.client || clientId, project };
+      await tx.leadStageHistory.create({
+        data: {
+          leadId: lead.id,
+          fromStage: lead.stage,
+          toStage: "PROJECT_CREATED",
+          changedById: userId || null,
+          notes: `Converted to Project #${project.referenceNo} (${project.title})`,
+        },
+      });
+
+      const finalClient = clientId ? await tx.client.findUnique({ where: { id: clientId } }) : null;
+      return { client: finalClient, project };
     });
 
     await AuditService.logEvent({

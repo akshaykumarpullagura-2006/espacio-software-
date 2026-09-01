@@ -39,11 +39,11 @@ export class DuplicateDetectionService {
     ];
 
     if (cleanEmail && cleanEmail.length > 0) {
-      OR.push({ email: { equals: cleanEmail, mode: "insensitive" } });
+      OR.push({ email: { equals: cleanEmail } });
     }
 
     if (params.clientName && params.clientName.trim().length >= 3) {
-      OR.push({ clientName: { contains: params.clientName.trim(), mode: "insensitive" } });
+      OR.push({ clientName: { contains: params.clientName.trim() } });
     }
 
     const matchedLeads = await db.lead.findMany({

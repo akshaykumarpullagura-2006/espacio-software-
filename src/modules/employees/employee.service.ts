@@ -42,7 +42,7 @@ export class EmployeeService {
     }
 
     if (designation) {
-      where.designation = { contains: designation, mode: "insensitive" };
+      where.designation = { contains: designation };
     }
 
     if (status && status !== "ALL") {
@@ -52,10 +52,10 @@ export class EmployeeService {
     if (search && search.trim() !== "") {
       const q = search.trim();
       where.OR = [
-        { fullName: { contains: q, mode: "insensitive" } },
-        { employeeNo: { contains: q, mode: "insensitive" } },
-        { email: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q, mode: "insensitive" } },
+        { fullName: { contains: q } },
+        { employeeNo: { contains: q } },
+        { email: { contains: q } },
+        { phone: { contains: q } },
       ];
     }
 

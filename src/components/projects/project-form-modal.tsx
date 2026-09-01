@@ -131,24 +131,26 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="bg-white border border-slate-200 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#4A433D]/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="bg-[#F6EFE3] border border-[#6F5642]/20 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-emerald-600" />
+        <div className="px-6 py-4 border-b border-[#6F5642]/20 flex items-center justify-between bg-[#ECF4F0]">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-[#F2B455]/20 text-[#6F5642] rounded-lg">
+              <Building2 className="w-5 h-5 text-[#6F5642]" />
+            </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
+              <h2 className="text-sm font-bold text-[#4A433D]">
                 {isEdit ? `Edit Project: ${initialData.referenceNo}` : "Create New Project"}
               </h2>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[#6F5642]">
                 {isEdit ? "Update project execution details and timeline" : "Initialize a new project record"}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-1 text-[#6F5642] hover:text-[#4A433D] rounded-lg hover:bg-[#F6EFE3] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -165,7 +167,7 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Project Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-[#4A433D] mb-1">
               Project Title <span className="text-rose-500">*</span>
             </label>
             <Input
@@ -173,13 +175,14 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               placeholder="e.g. Luxury 4BHK Villa - Indiranagar"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="bg-white border-[#6F5642]/30"
             />
           </div>
 
           {/* Client & Property Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-[#4A433D] mb-1">
                 Client <span className="text-rose-500">*</span>
               </label>
               <select
@@ -187,7 +190,7 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
                 disabled={isEdit}
                 value={formData.clientId}
                 onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                className="w-full h-9 px-3 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 disabled:bg-slate-100"
+                className="w-full h-9 px-3 text-xs bg-white border border-[#6F5642]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F2B455] text-[#4A433D] disabled:bg-[#ECF4F0]"
               >
                 <option value="">Select Client</option>
                 {clients.map((c) => (
@@ -199,11 +202,11 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Property Type</label>
+              <label className="block text-xs font-semibold text-[#4A433D] mb-1">Property Type</label>
               <select
                 value={formData.propertyTypeKey}
                 onChange={(e) => setFormData({ ...formData, propertyTypeKey: e.target.value })}
-                className="w-full h-9 px-3 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
+                className="w-full h-9 px-3 text-xs bg-white border border-[#6F5642]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F2B455] text-[#4A433D]"
               >
                 <option value="APARTMENT_INTERIOR">Apartment Interior</option>
                 <option value="VILLA_INTERIOR">Villa / Independent House</option>
@@ -216,17 +219,17 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           {/* Contract Value & Priority */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-[#4A433D] mb-1">
                 Contract Value / Budget (₹) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
-                <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <DollarSign className="w-3.5 h-3.5 text-[#6F5642] absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   type="number"
                   required
                   min="0"
                   placeholder="0.00"
-                  className="pl-8 tabular-nums font-semibold"
+                  className="pl-8 tabular-nums font-semibold bg-white border-[#6F5642]/30"
                   value={formData.totalBudget || ""}
                   onChange={(e) => setFormData({ ...formData, totalBudget: parseFloat(e.target.value) || 0 })}
                 />
@@ -234,11 +237,11 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
+              <label className="block text-xs font-semibold text-[#4A433D] mb-1">Priority</label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full h-9 px-3 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
+                className="w-full h-9 px-3 text-xs bg-white border border-[#6F5642]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F2B455] text-[#4A433D]"
               >
                 {PROJECT_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -252,12 +255,12 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           {/* Start Date & Target Completion Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
+              <label className="block text-xs font-semibold text-[#4A433D] mb-1">Start Date</label>
               <div className="relative">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Calendar className="w-3.5 h-3.5 text-[#6F5642] absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   type="date"
-                  className="pl-8"
+                  className="pl-8 bg-white border-[#6F5642]/30"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 />
@@ -265,12 +268,12 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Target Completion Date</label>
+              <label className="block text-xs font-semibold text-[#4A433D] mb-1">Target Completion Date</label>
               <div className="relative">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Calendar className="w-3.5 h-3.5 text-[#6F5642] absolute left-3 top-1/2 -translate-y-1/2" />
                 <Input
                   type="date"
-                  className="pl-8"
+                  className="pl-8 bg-white border-[#6F5642]/30"
                   value={formData.targetCompletionDate}
                   onChange={(e) => setFormData({ ...formData, targetCompletionDate: e.target.value })}
                 />
@@ -280,15 +283,15 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
           {/* Site Address */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Site Address</label>
+            <label className="block text-xs font-semibold text-[#4A433D] mb-1">Site Address</label>
             <div className="relative">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+              <MapPin className="w-3.5 h-3.5 text-[#6F5642] absolute left-3 top-3" />
               <textarea
                 rows={2}
                 placeholder="Flat / House No, Street, Landmark, Area..."
                 value={formData.siteAddress}
                 onChange={(e) => setFormData({ ...formData, siteAddress: e.target.value })}
-                className="w-full pl-8 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
+                className="w-full pl-8 pr-3 py-2 text-xs bg-white border border-[#6F5642]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F2B455] text-[#4A433D]"
               />
             </div>
           </div>
@@ -296,46 +299,49 @@ export const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
           {/* City & State */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">City</label>
+              <label className="block text-[11px] font-semibold text-[#4A433D] mb-1">City</label>
               <Input
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                className="bg-white border-[#6F5642]/30 text-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">State</label>
+              <label className="block text-[11px] font-semibold text-[#4A433D] mb-1">State</label>
               <Input
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                className="bg-white border-[#6F5642]/30 text-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Postal Code</label>
+              <label className="block text-[11px] font-semibold text-[#4A433D] mb-1">Postal Code</label>
               <Input
                 value={formData.postalCode}
                 onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                className="bg-white border-[#6F5642]/30 text-xs"
               />
             </div>
           </div>
 
           {/* Internal Notes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Internal Execution Notes</label>
+            <label className="block text-xs font-semibold text-[#4A433D] mb-1">Internal Execution Notes</label>
             <textarea
               rows={2}
               placeholder="Special instructions, site access notes, key client preferences..."
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
+              className="w-full px-3 py-2 text-xs bg-white border border-[#6F5642]/30 rounded-md focus:outline-none focus:ring-2 focus:ring-[#F2B455] text-[#4A433D]"
             />
           </div>
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+          <div className="pt-4 border-t border-[#6F5642]/20 flex items-center justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading} className="border-[#6F5642]/30 text-[#4A433D]">
               Cancel
             </Button>
-            <Button type="submit" size="sm" disabled={isLoading}>
+            <Button type="submit" size="sm" disabled={isLoading} className="bg-[#6F5642] hover:bg-[#4A433D] text-white">
               {isLoading ? "Saving..." : isEdit ? "Update Project" : "Create Project"}
             </Button>
           </div>

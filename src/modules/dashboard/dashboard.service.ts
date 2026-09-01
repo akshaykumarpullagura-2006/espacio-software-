@@ -23,6 +23,28 @@ export class DashboardMetricsService {
     const now = new Date();
     const period = options.period || "THIS_MONTH";
 
+    if (period === "TODAY") {
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const e = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      return {
+        startDate: s,
+        endDate: e,
+        periodLabel: "Today",
+      };
+    }
+
+    if (period === "THIS_WEEK") {
+      const day = now.getDay();
+      const diffToMonday = (day + 6) % 7; // Monday = 0
+      const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday, 0, 0, 0, 0);
+      const e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6, 23, 59, 59, 999);
+      return {
+        startDate: s,
+        endDate: e,
+        periodLabel: "This Week",
+      };
+    }
+
     if (period === "OVERALL") {
       const s = new Date(2000, 0, 1);
       const e = new Date(now.getFullYear() + 10, 11, 31, 23, 59, 59, 999);
@@ -86,6 +108,38 @@ export class DashboardMetricsService {
   }
 
   /**
+   * Helper to resolve navigation URLs from entity type and reference
+   */
+  private static resolveEntityUrl(entityType?: string, entityId?: string): string {
+    if (!entityType) return "/dashboard";
+    const type = entityType.toUpperCase();
+    if (type.includes("LEAD")) return "/leads";
+    if (type.includes("PROJECT")) return "/projects";
+    if (type.includes("QUOTATION")) return "/quotations";
+    if (type.includes("PAYMENT") || type.includes("RECEIVABLE")) return "/finance/payments";
+    if (type.includes("EXPENSE") || type.includes("ADVANCE")) return "/finance/expenses";
+    if (type.includes("VENDOR")) return "/procurement/vendors";
+    if (type.includes("PURCHASE") || type.includes("ORDER")) return "/procurement/purchase-orders";
+    if (type.includes("MATERIAL") || type.includes("REQUEST")) return "/procurement/material-requests";
+    if (type.includes("CLIENT")) return "/leads";
+    if (type.includes("INVOICE")) return "/finance/invoices";
+    if (type.includes("REPORT")) return "/reports";
+    return "/audit-logs";
+  }
+
+  /**
+   * Convenience alias for getDashboardSummary
+   */
+  public static async getSummary(
+    period: DashboardPeriod = "THIS_MONTH",
+    startDate?: string,
+    endDate?: string,
+    userId?: string
+  ): Promise<DashboardSummaryResponse> {
+    return this.getDashboardSummary(userId || "system", { period, startDate, endDate });
+  }
+
+  /**
    * Main aggregator method for Executive Command Center
    */
   public static async getDashboardSummary(
@@ -118,7 +172,8 @@ export class DashboardMetricsService {
       periodExpenseData,
       todayLeadFollowups,
       overdueLeadFollowups,
-      todayTasks,
+      pendingPaymentsCount,
+      pendingExpensesCount,
       stageGroupCounts,
       recentAuditLogs,
       recentActivityLogs,
@@ -127,36 +182,52 @@ export class DashboardMetricsService {
       recentNotifications,
     ] = await withDbRetry(() =>
       Promise.all([
-        // A. Total Leads
-        db.lead.count(),
+        // 1. Total Leads (scoped to selected period if period is specified, or all leads for OVERALL)
+        options.period === "OVERALL"
+          ? db.lead.count()
+          : db.lead.count({
+              where: { createdAt: { gte: startDate, lte: endDate } },
+            }),
 
-        // B. Active Projects (Not completed and not cancelled)
-        db.project.count({
-          where: { stage: { notIn: ["COMPLETED", "CANCELLED"] } },
-        }),
-
-        // C. Completed Projects
-        db.project.count({
-          where: { stage: "COMPLETED" },
-        }),
-
-        // D. Delayed Projects (Active projects past handover target date)
+        // 2. Active Projects (Not completed and not cancelled)
         db.project.count({
           where: {
-            stage: { notIn: ["COMPLETED", "CANCELLED"] },
-            handoverDate: { lt: now },
+            stage: { notIn: ["COMPLETED", "PROJECT_COMPLETED", "CANCELLED"] },
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
           },
         }),
 
-        // E. Total Contract Value for Pending Receivables
+        // 3. Completed Projects
+        db.project.count({
+          where: {
+            OR: [
+              { stage: { in: ["COMPLETED", "PROJECT_COMPLETED"] } },
+              { status: "COMPLETED" },
+            ],
+          },
+        }),
+
+        // 4. Delayed Projects (Active projects past targetCompletionDate or handoverDate)
+        db.project.count({
+          where: {
+            stage: { notIn: ["COMPLETED", "PROJECT_COMPLETED", "CANCELLED"] },
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+            OR: [
+              { targetCompletionDate: { lt: now } },
+              { handoverDate: { lt: now } },
+            ],
+          },
+        }),
+
+        // 5. Total Contract Value for Pending Receivables
         hasFinanceAccess
           ? db.project.aggregate({
               _sum: { contractValue: true },
-              where: { stage: { not: "CANCELLED" } },
+              where: { status: { not: "CANCELLED" } },
             })
           : Promise.resolve({ _sum: { contractValue: 0 } }),
 
-        // F. Total Lifetime Verified Payments
+        // 6. Total Lifetime Verified Payments
         hasFinanceAccess
           ? db.clientPayment.aggregate({
               _sum: { amount: true },
@@ -164,7 +235,7 @@ export class DashboardMetricsService {
             })
           : Promise.resolve({ _sum: { amount: 0 } }),
 
-        // G. Period Revenue (Verified client payments in period)
+        // 7. Period Revenue (Verified client payments in period)
         hasFinanceAccess
           ? db.clientPayment.aggregate({
               _sum: { amount: true },
@@ -175,7 +246,7 @@ export class DashboardMetricsService {
             })
           : Promise.resolve({ _sum: { amount: 0 } }),
 
-        // H. Period Expenses (Approved expenses in period)
+        // 8. Period Expenses (Approved expenses in period)
         hasFinanceAccess
           ? db.expense.aggregate({
               _sum: { amount: true },
@@ -186,13 +257,13 @@ export class DashboardMetricsService {
             })
           : Promise.resolve({ _sum: { amount: 0 } }),
 
-        // I. Today's Lead Followups
+        // 9. Today's Lead Followups
         db.leadFollowUp.findMany({
           where: {
             followUpDate: { gte: startOfToday, lte: endOfToday },
             status: "PENDING",
           },
-          take: 6,
+          take: 8,
           orderBy: { followUpDate: "asc" },
           include: {
             lead: {
@@ -201,7 +272,7 @@ export class DashboardMetricsService {
           },
         }),
 
-        // J. Overdue Lead Followups
+        // 10. Overdue Lead Followups
         db.leadFollowUp.count({
           where: {
             followUpDate: { lt: startOfToday },
@@ -209,60 +280,51 @@ export class DashboardMetricsService {
           },
         }),
 
-        // K. Today's Due Tasks
-        db.task.findMany({
-          where: {
-            dueAt: { gte: startOfToday, lte: endOfToday },
-            status: { notIn: ["COMPLETED", "CANCELLED"] },
-          },
-          take: 6,
-          orderBy: { priority: "desc" },
-          select: {
-            id: true,
-            referenceNo: true,
-            title: true,
-            priority: true,
-            status: true,
-            dueAt: true,
-            assignee: { select: { fullName: true } },
-            project: { select: { title: true } },
-            client: { select: { fullName: true } },
-            lead: { select: { clientName: true } },
-          },
+        // 11. Pending Payments Count (awaiting confirmation)
+        db.clientPayment.count({
+          where: { status: { in: ["RECORDED", "PENDING"] } },
         }),
 
-        // L. Project Pipeline by Stage
+        // 12. Pending Expenses Count (awaiting approval)
+        db.expense.count({
+          where: { status: { in: ["SUBMITTED", "PENDING"] } },
+        }),
+
+        // 13. Project Pipeline by Stage
         db.project.groupBy({
           by: ["stage"],
-          where: { stage: { notIn: ["COMPLETED", "CANCELLED"] } },
+          where: {
+            stage: { notIn: ["COMPLETED", "PROJECT_COMPLETED", "CANCELLED"] },
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
           _count: { stage: true },
         }),
 
-        // M. Recent Audit Logs
+        // 15. Recent Audit Logs
         db.auditLog.findMany({
           take: 8,
           orderBy: { createdAt: "desc" },
           include: { user: { select: { fullName: true } } },
         }),
 
-        // N. Recent Activity Logs
+        // 16. Recent Activity Logs
         db.activityLog.findMany({
           take: 8,
           orderBy: { createdAt: "desc" },
           include: { user: { select: { fullName: true } } },
         }),
 
-        // O. Unread Notifications Count
+        // 17. Unread Notifications Count
         db.notification.count({
           where: { userId, isRead: false, dismissedAt: null },
         }),
 
-        // P. Urgent Notifications Count
+        // 18. Urgent Notifications Count
         db.notification.count({
           where: { userId, isRead: false, priority: "URGENT", dismissedAt: null },
         }),
 
-        // Q. Recent Notifications List
+        // 19. Recent Notifications List
         db.notification.findMany({
           where: { userId, dismissedAt: null },
           take: 5,
@@ -282,6 +344,9 @@ export class DashboardMetricsService {
     const profit = revenue - expenses;
     const isLoss = profit < 0;
     const profitMarginPct = revenue > 0 ? Number(((profit / revenue) * 100).toFixed(1)) : null;
+
+    const totalTodayFollowUps = todayLeadFollowups.length;
+    const totalPendingApprovals = pendingPaymentsCount + pendingExpensesCount;
 
     // 4. 6-Month Dynamic Financial Trend
     const financialTrend: TrendMonthData[] = [];
@@ -338,16 +403,28 @@ export class DashboardMetricsService {
     });
 
     const pipelineStagesConfig: Array<{ key: string; label: string; color: string }> = [
-      { key: "INITIATED", label: "Initiated", color: "bg-slate-400" },
-      { key: "DESIGN_IN_PROGRESS", label: "Design", color: "bg-blue-500" },
-      { key: "PROCUREMENT", label: "Procurement", color: "bg-indigo-500" },
-      { key: "EXECUTION", label: "Execution", color: "bg-amber-500" },
+      { key: "CONFIRMATION_FEE_PAID", label: "Initiated", color: "bg-slate-400" },
+      { key: "DESIGNING", label: "Design", color: "bg-blue-500" },
+      { key: "RAW_MATERIAL_ORDERED", label: "Procurement", color: "bg-indigo-500" },
+      { key: "WOOD_WORK", label: "Wood Work", color: "bg-amber-500" },
+      { key: "LAMINATE_PASTING", label: "Laminate & Fitting", color: "bg-orange-500" },
       { key: "QUALITY_CHECK", label: "Quality Check", color: "bg-purple-500" },
-      { key: "HANDOVER", label: "Handover", color: "bg-emerald-500" },
+      { key: "PROJECT_HANDOVER", label: "Handover", color: "bg-emerald-500" },
     ];
 
     const pipelineStages: PipelineStageData[] = pipelineStagesConfig.map((stage) => {
-      const count = stageMap[stage.key] || 0;
+      // Aggregate stage counts matching this step or alternate aliases
+      let count = stageMap[stage.key] || 0;
+      if (stage.key === "DESIGNING") {
+        count += (stageMap["DESIGN_COMPLETED"] || 0);
+      } else if (stage.key === "RAW_MATERIAL_ORDERED") {
+        count += (stageMap["MATERIAL_SELECTION"] || 0);
+      } else if (stage.key === "WOOD_WORK") {
+        count += (stageMap["WOOD_WORK_COMPLETED"] || 0);
+      } else if (stage.key === "LAMINATE_PASTING") {
+        count += (stageMap["LAMINATE_ORDERED"] || 0) + (stageMap["FITTING_WORK_COMPLETED"] || 0);
+      }
+
       const percentage = activeProjects > 0 ? Math.round((count / activeProjects) * 100) : 0;
       return {
         stageKey: stage.key,
@@ -358,34 +435,19 @@ export class DashboardMetricsService {
       };
     });
 
-    // 6. Format Today's Follow-ups & Tasks
-    const followUpItems: FollowUpItem[] = [
-      ...todayLeadFollowups.map((f) => ({
-        id: f.id,
-        type: "LEAD_FOLLOWUP" as const,
-        title: `Follow up with ${f.lead?.clientName || "Lead"}`,
-        clientOrLeadName: f.lead?.clientName || "Lead Contact",
-        referenceNo: f.lead?.referenceNo || "LEAD",
-        dueAt: f.followUpDate.toISOString(),
-        status: (f.followUpDate < startOfToday ? "OVERDUE" : "PENDING") as "PENDING" | "OVERDUE",
-        phone: f.lead?.phone || undefined,
-        actionUrl: `/leads?search=${encodeURIComponent(f.lead?.referenceNo || "")}`,
-      })),
-      ...todayTasks.map((t) => {
-        const contextEntity = t.project?.title || t.client?.fullName || t.lead?.clientName || undefined;
-        return {
-          id: t.id,
-          type: "TASK" as const,
-          title: t.title,
-          clientOrLeadName: contextEntity || "General Task",
-          referenceNo: t.referenceNo,
-          dueAt: (t.dueAt || now).toISOString(),
-          status: (t.dueAt && t.dueAt < startOfToday ? "OVERDUE" : "PENDING") as "PENDING" | "OVERDUE",
-          assignedUserName: t.assignee?.fullName || undefined,
-          actionUrl: `/tasks`,
-        };
-      }),
-    ];
+    // 6. Format Today's Follow-ups (CRM Leads only)
+    const followUpItems: FollowUpItem[] = todayLeadFollowups.map((f) => ({
+      id: f.id,
+      leadId: f.leadId,
+      type: "LEAD_FOLLOWUP" as const,
+      title: `Follow up with ${f.lead?.clientName || "Lead"}`,
+      clientOrLeadName: f.lead?.clientName || "Lead Contact",
+      referenceNo: f.lead?.referenceNo || "LEAD",
+      dueAt: f.followUpDate.toISOString(),
+      status: (f.followUpDate < startOfToday ? "OVERDUE" : "PENDING") as "PENDING" | "OVERDUE",
+      phone: f.lead?.phone || undefined,
+      actionUrl: `/leads?search=${encodeURIComponent(f.lead?.referenceNo || "")}`,
+    }));
 
     // 7. Format Recent Activities
     const activityItems: ActivityItem[] = [];
@@ -399,6 +461,7 @@ export class DashboardMetricsService {
           entityId: act.entityId,
           title: act.title,
           createdAt: act.createdAt.toISOString(),
+          actionUrl: this.resolveEntityUrl(act.entityType, act.entityId),
         });
       });
     } else {
@@ -411,19 +474,22 @@ export class DashboardMetricsService {
           entityId: aud.entityId || aud.id,
           title: `${aud.action} on ${aud.entityType}`,
           createdAt: aud.createdAt.toISOString(),
+          actionUrl: this.resolveEntityUrl(aud.entityType, aud.entityId || undefined),
         });
       });
     }
 
-    // 8. Quick Access Configuration with Permission Checks
+    // 8. Quick Access Configuration with Permission Checks (Approved Modules Only)
     const allQuickShortcuts: QuickAccessItem[] = [
       { id: "new-lead", label: "New Lead", href: "/leads", iconName: "Users", permissionRequired: "leads:write", color: "text-emerald-600 bg-emerald-50" },
       { id: "new-project", label: "New Project", href: "/projects", iconName: "FolderKanban", permissionRequired: "projects:write", color: "text-blue-600 bg-blue-50" },
       { id: "record-payment", label: "Record Payment", href: "/finance/payments", iconName: "Wallet", permissionRequired: "payments:write", color: "text-amber-600 bg-amber-50" },
       { id: "add-expense", label: "Add Expense", href: "/finance/expenses", iconName: "Receipt", permissionRequired: "expenses:write", color: "text-rose-600 bg-rose-50" },
+      { id: "petty-cash", label: "Petty Cash", href: "/finance/petty-cash", iconName: "Coins", permissionRequired: "expenses:write", color: "text-amber-700 bg-amber-50" },
       { id: "new-quotation", label: "New Quotation", href: "/quotations", iconName: "FileText", permissionRequired: "projects:write", color: "text-indigo-600 bg-indigo-50" },
       { id: "vendors", label: "Vendors", href: "/procurement/vendors", iconName: "Building2", permissionRequired: "vendors:read", color: "text-purple-600 bg-purple-50" },
       { id: "purchase-orders", label: "Purchase Orders", href: "/procurement/purchase-orders", iconName: "ShoppingCart", permissionRequired: "purchase_orders:read", color: "text-cyan-600 bg-cyan-50" },
+      { id: "material-requests", label: "Material Requests", href: "/procurement/material-requests", iconName: "Package", permissionRequired: "materials:read", color: "text-teal-600 bg-teal-50" },
       { id: "reports", label: "Executive Reports", href: "/reports", iconName: "PieChart", permissionRequired: "finance:read", color: "text-emerald-700 bg-emerald-100" },
     ];
 
@@ -449,6 +515,8 @@ export class DashboardMetricsService {
         monthlyProfitMarginPct: hasFinanceAccess ? profitMarginPct : null,
         monthlyRevenue: hasFinanceAccess ? revenue : 0,
         monthlyExpenses: hasFinanceAccess ? expenses : 0,
+        todayFollowUpsCount: totalTodayFollowUps,
+        pendingApprovalsCount: totalPendingApprovals,
         isLoss: hasFinanceAccess ? isLoss : false,
       },
       financialSummary: hasFinanceAccess
@@ -472,7 +540,7 @@ export class DashboardMetricsService {
         stages: pipelineStages,
       },
       followUps: {
-        todayCount: todayLeadFollowups.length + todayTasks.length,
+        todayCount: totalTodayFollowUps,
         overdueCount: overdueLeadFollowups,
         items: followUpItems,
       },
@@ -499,3 +567,6 @@ export class DashboardMetricsService {
     };
   }
 }
+
+export const DashboardService = DashboardMetricsService;
+

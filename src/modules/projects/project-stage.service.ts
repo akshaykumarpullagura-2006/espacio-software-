@@ -225,4 +225,28 @@ export class ProjectStageService {
   public static getStageDefinitions(): StageDefinition[] {
     return CANONICAL_STAGE_DEFINITIONS;
   }
+
+  /**
+   * Migrate legacy stage strings to canonical stage keys in the database
+   */
+  public static async migrateLegacyStages() {
+    const legacyMappings: Record<string, string> = {
+      INITIATED: "CONFIRMATION_FEE_PAID",
+      INITIATION: "CONFIRMATION_FEE_PAID",
+      PLANNING: "CONFIRMATION_FEE_PAID",
+      SITE_MEASUREMENT_DONE: "DESIGNING",
+      "2D_3D_DESIGN_APPROVED": "DESIGN_COMPLETED",
+      ADVANCE_RECEIVED: "RAW_MATERIAL_ORDERED",
+      PRODUCTION_IN_PROGRESS: "WOOD_WORK",
+      QUALITY_CHECK_PASSED: "QUALITY_CHECK",
+      COMPLETED: "PROJECT_COMPLETED",
+    };
+
+    for (const [legacy, canonical] of Object.entries(legacyMappings)) {
+      await db.project.updateMany({
+        where: { stage: legacy },
+        data: { stage: canonical },
+      });
+    }
+  }
 }

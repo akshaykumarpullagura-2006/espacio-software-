@@ -20,6 +20,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/utils";
 import { LOSS_REASONS, FOLLOW_UP_TYPES } from "@/validators/lead.schema";
@@ -73,6 +75,27 @@ export const LeadWorkspace: React.FC<LeadWorkspaceProps> = ({
   const [lossReason, setLossReason] = useState("BUDGET");
   const [reopenReason, setReopenReason] = useState("");
   const [isChangingStatus, setIsChangingStatus] = useState(false);
+
+  // Edit Lead state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdatingLead, setIsUpdatingLead] = useState(false);
+  const [editForm, setEditForm] = useState({
+    clientName: "",
+    phone: "",
+    email: "",
+    location: "",
+    propertyTypeKey: "",
+    budget: "",
+    priority: "MEDIUM",
+    sourceKey: "",
+    tags: "",
+    notes: "",
+    requirement: "",
+  });
+
+  // Delete Lead state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingLead, setIsDeletingLead] = useState(false);
 
   // Conversion state
   const [isConverting, setIsConverting] = useState(false);
@@ -300,6 +323,82 @@ export const LeadWorkspace: React.FC<LeadWorkspaceProps> = ({
     }
   };
 
+  const openEditModal = () => {
+    if (!lead) return;
+    setEditForm({
+      clientName: lead.clientName || "",
+      phone: lead.phone || "",
+      email: lead.email || "",
+      location: lead.location || "",
+      propertyTypeKey: lead.propertyTypeKey || "",
+      budget: lead.estimatedBudget ? String(lead.estimatedBudget) : "",
+      priority: lead.priority || "MEDIUM",
+      sourceKey: lead.sourceKey || "WEBSITE",
+      tags: lead.tags || "",
+      notes: lead.notes || "",
+      requirement: lead.requirement || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateLead = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingLead(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/v1/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editForm,
+          estimatedBudget: editForm.budget ? parseFloat(editForm.budget) : undefined,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error?.message || "Failed to update lead");
+        return;
+      }
+
+      setIsEditModalOpen(false);
+      setSuccessMsg("Lead updated successfully");
+      await fetchLeadDetails();
+      onUpdate();
+    } catch {
+      setError("Network error updating lead");
+    } finally {
+      setIsUpdatingLead(false);
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    setIsDeletingLead(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/v1/leads/${leadId}`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.error?.message || "Failed to delete lead");
+        setIsDeleteModalOpen(false);
+        return;
+      }
+
+      setIsDeleteModalOpen(false);
+      onClose();
+      onUpdate();
+    } catch {
+      setError("Network error deleting lead");
+    } finally {
+      setIsDeletingLead(false);
+    }
+  };
+
   const getPriorityBadgeClass = (p?: string) => {
     switch (p) {
       case "URGENT":
@@ -419,6 +518,15 @@ export const LeadWorkspace: React.FC<LeadWorkspaceProps> = ({
 
           {/* Quick Hub Actions */}
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<Edit2 className="w-3.5 h-3.5 text-slate-700" />}
+              onClick={openEditModal}
+            >
+              Edit
+            </Button>
+
             <Link
               href={`/quotations/new?leadId=${lead?.id}`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors"
@@ -460,6 +568,15 @@ export const LeadWorkspace: React.FC<LeadWorkspaceProps> = ({
                 Convert to Project
               </Button>
             )}
+
+            <Button
+              size="sm"
+              variant="outline"
+              leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-600" />}
+              onClick={() => setIsDeleteModalOpen(true)}
+            >
+              Delete
+            </Button>
           </div>
         </div>
 
@@ -919,6 +1036,118 @@ export const LeadWorkspace: React.FC<LeadWorkspaceProps> = ({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT LEAD MODAL */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <h3 className="text-sm font-bold text-slate-900">Edit Lead Details ({lead?.referenceNo})</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateLead} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Customer Name *"
+                  value={editForm.clientName}
+                  onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Phone *"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
+                <Input
+                  label="Location"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Estimated Budget (₹)"
+                  type="number"
+                  value={editForm.budget}
+                  onChange={(e) => setEditForm({ ...editForm, budget: e.target.value })}
+                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Priority</label>
+                  <select
+                    value={editForm.priority}
+                    onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                    className="h-9 px-2.5 text-xs bg-white border border-slate-300 rounded-md font-semibold text-slate-800"
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                  </select>
+                </div>
+              </div>
+              <Input
+                label="Tags (comma separated)"
+                placeholder="e.g. Luxury, Villa, Urgent"
+                value={editForm.tags}
+                onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Notes & Requirements</label>
+                <textarea
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  className="p-2.5 text-xs bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <Button type="button" variant="outline" size="sm" onClick={() => setIsEditModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm" isLoading={isUpdatingLead}>
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE LEAD CONFIRMATION MODAL */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-sm p-5 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-2 bg-rose-50 rounded-full">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Delete Lead?</h3>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to permanently delete lead <span className="font-bold text-slate-900">{lead?.referenceNo}</span> ({lead?.clientName})? This action cannot be undone and will be recorded in the audit log.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" variant="danger" size="sm" isLoading={isDeletingLead} onClick={handleDeleteLead}>
+                Delete Lead
+              </Button>
+            </div>
           </div>
         </div>
       )}

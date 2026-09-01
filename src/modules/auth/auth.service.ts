@@ -199,7 +199,6 @@ export class AuthService {
       fullName: user.fullName,
       accessLevel,
       roles: effectiveRoles,
-      permissions,
     };
 
     const token = await createSessionToken(payload);

@@ -39,17 +39,24 @@ describe("ESPACIO ERP — Master Development Prompt 09: Strict Financial Control
       });
     }
 
-    regularUser = await db.user.findFirst({ where: { accessLevel: "USER", status: "ACTIVE" } });
+    regularUser = await db.user.findFirst({ where: { email: "site.engineer.test@espacio.in" } });
     if (!regularUser) {
       regularUser = await db.user.create({
         data: {
-          email: "site.engineer@espacio.in",
+          email: "site.engineer.test@espacio.in",
           passwordHash: "dummyhash",
           fullName: "Site Engineer User",
           accessLevel: "USER",
           status: "ACTIVE",
         },
       });
+    } else {
+      await db.user.update({
+        where: { id: regularUser.id },
+        data: { accessLevel: "USER", status: "ACTIVE" },
+      });
+      await db.userRole.deleteMany({ where: { userId: regularUser.id } });
+      RbacService.invalidateUserCache(regularUser.id);
     }
 
     // 2. Setup Client
@@ -432,6 +439,10 @@ describe("ESPACIO ERP — Master Development Prompt 09: Strict Financial Control
 
     const month = 8;
     const year = 2026;
+
+    await db.employeeSalaryPayment.deleteMany({
+      where: { employeeId: testEmployee.id, periodMonth: month, periodYear: year },
+    });
 
     // Credit Salary
     const salaryPayment = await EmployeeService.creditSalary(

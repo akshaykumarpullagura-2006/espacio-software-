@@ -230,66 +230,59 @@ export class IdGeneratorService {
         break;
       }
       case "LEAD": {
-        const last = await db.lead.findFirst({
+        const records = await db.lead.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "PROJ": {
-        const last = await db.project.findFirst({
+        const records = await db.project.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "CO": {
-        const last = await db.changeOrder.findFirst({
+        const records = await db.changeOrder.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "WAR": {
-        const last = await db.warrantyIssue.findFirst({
+        const records = await db.warrantyIssue.findMany({
           where: { issueNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { issueNo: "desc" },
           select: { issueNo: true },
         });
-        maxSequence = this.extractSequence(last?.issueNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.issueNo)), 0);
         break;
       }
       case "ADV": {
-        const last = await db.employeeAdvance.findFirst({
+        const records = await db.employeeAdvance.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "PCX": {
-        const last = await db.pettyCashExpense.findFirst({
+        const records = await db.pettyCashExpense.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "SET": {
-        const last = await db.advanceSettlement.findFirst({
+        const records = await db.advanceSettlement.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "Q": {
@@ -297,66 +290,47 @@ export class IdGeneratorService {
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
           select: { referenceNo: true },
         });
-        maxSequence = records.reduce((max, r) => {
-          const seq = this.extractSequence(r.referenceNo);
-          return Math.max(max, seq);
-        }, 0);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "PAY": {
-        const last = await db.clientPayment.findFirst({
+        const records = await db.clientPayment.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "EXP": {
-        const last = await db.expense.findFirst({
+        const records = await db.expense.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "VEN": {
-        const last = await db.vendor.findFirst({
+        const records = await db.vendor.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "PO": {
-        const last = await db.purchaseOrder.findFirst({
+        const records = await db.purchaseOrder.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
       case "CLI": {
-        const last = await db.client.findFirst({
+        const records = await db.client.findMany({
           where: { referenceNo: { startsWith: `${prefix}-${year}-` } },
-          orderBy: { referenceNo: "desc" },
           select: { referenceNo: true },
         });
-        maxSequence = this.extractSequence(last?.referenceNo);
-        break;
-      }
-      case "INV": {
-        const records = await db.gstInvoice.findMany({
-          where: { invoiceNo: { startsWith: `${prefix}-${year}-` } },
-          select: { invoiceNo: true },
-        });
-        maxSequence = records.reduce((max, r) => {
-          const seq = this.extractSequence(r.invoiceNo);
-          return Math.max(max, seq);
-        }, 0);
+        maxSequence = records.reduce((max, r) => Math.max(max, this.extractSequence(r.referenceNo)), 0);
         break;
       }
     }
@@ -375,12 +349,16 @@ export class IdGeneratorService {
     const match = refNo.match(/^[A-Z]+-\d{4}-(\d+)/);
     if (match && match[1]) {
       const parsed = parseInt(match[1], 10);
-      return isNaN(parsed) ? 0 : parsed;
+      if (!isNaN(parsed)) {
+        if (parsed >= 9000 && parsed <= 9999) return 0;
+        return parsed;
+      }
     }
     const parts = refNo.split("-");
     for (let i = parts.length - 1; i >= 0; i--) {
       const parsed = parseInt(parts[i], 10);
       if (!isNaN(parsed) && parts[i].length <= 6) {
+        if (parsed >= 9000 && parsed <= 9999) return 0;
         return parsed;
       }
     }

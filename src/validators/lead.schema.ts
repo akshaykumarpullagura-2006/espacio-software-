@@ -11,6 +11,7 @@ export const LEAD_STAGES = [
   "QUOTATION_SENT",
   "NEGOTIATION",
   "WON",
+  "PROJECT_CREATED",
   "LOST",
 ] as const;
 

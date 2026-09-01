@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DataTable } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { LeadFormModal } from "@/components/leads/lead-form-modal";
 import { LeadWorkspace } from "@/components/leads/lead-workspace";
 import {
@@ -18,6 +19,8 @@ import {
   FileCheck,
   CheckCircle2,
   AlertCircle,
+  BarChart3,
+  Percent,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -39,6 +42,11 @@ export default function LeadsDatabasePage() {
   const [assignedFilter, setAssignedFilter] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  // ROI Modal state
+  const [isRoiModalOpen, setIsRoiModalOpen] = useState(false);
+  const [roiData, setRoiData] = useState<any>(null);
+  const [isRoiLoading, setIsRoiLoading] = useState(false);
 
   // Modals & Drawers
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -69,6 +77,26 @@ export default function LeadsDatabasePage() {
     } catch {
       // quiet handling
     }
+  };
+
+  const fetchRoi = async () => {
+    setIsRoiLoading(true);
+    try {
+      const res = await fetch("/api/v1/leads/roi");
+      const json = await res.json();
+      if (json.success) {
+        setRoiData(json.data);
+      }
+    } catch {
+      // quiet handling
+    } finally {
+      setIsRoiLoading(false);
+    }
+  };
+
+  const openRoiModal = () => {
+    setIsRoiModalOpen(true);
+    fetchRoi();
   };
 
   const fetchLeads = async () => {
@@ -230,18 +258,21 @@ export default function LeadsDatabasePage() {
   return (
     <div className="space-y-5 max-w-7xl mx-auto select-none">
       {/* Page Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+      <div className="flex items-center justify-between pb-2 border-b border-walnut/15">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Leads & CRM Pipeline</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Enterprise lead directory, qualification tracking, and commercial conversions</p>
+          <h1 className="text-xl font-bold text-charcoal tracking-tight">Leads & CRM Pipeline</h1>
+          <p className="text-xs text-walnut mt-0.5">Enterprise lead directory, qualification tracking, and commercial conversions</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" leftIcon={<BarChart3 className="w-3.5 h-3.5 text-gold" />} onClick={openRoiModal}>
+            Source ROI
+          </Button>
           <Link href="/leads/pipeline">
-            <Button variant="outline" size="sm" leftIcon={<LayoutGrid className="w-3.5 h-3.5" />}>
+            <Button variant="secondary" size="sm" leftIcon={<LayoutGrid className="w-3.5 h-3.5 text-walnut" />}>
               Pipeline Board
             </Button>
           </Link>
-          <Button variant="primary" size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />} onClick={() => setIsAddModalOpen(true)}>
+          <Button variant="primary" size="sm" leftIcon={<Plus className="w-3.5 h-3.5 text-charcoal" />} onClick={() => setIsAddModalOpen(true)}>
             Add Lead
           </Button>
         </div>
@@ -431,6 +462,102 @@ export default function LeadsDatabasePage() {
           fetchMetrics();
         }}
       />
+
+      {/* LEAD SOURCE ROI MODAL */}
+      <Modal
+        isOpen={isRoiModalOpen}
+        onClose={() => setIsRoiModalOpen(false)}
+        title="Lead Source ROI & Acquisition Performance"
+        description="Comprehensive analysis of marketing spend vs. pipeline conversion & revenue"
+        maxWidth="2xl"
+      >
+        <div className="space-y-4 select-none">
+          {isRoiLoading ? (
+            <div className="py-12 text-center text-xs text-walnut">Loading Lead Source ROI telemetry...</div>
+          ) : roiData ? (
+            <div className="space-y-4">
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-cream/50 rounded-lg border border-walnut/15 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-walnut">Total Leads</span>
+                  <p className="text-base font-bold text-charcoal font-mono">{roiData.summary.totalLeads}</p>
+                </div>
+                <div className="p-3 bg-cream/50 rounded-lg border border-walnut/15 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-walnut">Won Leads</span>
+                  <p className="text-base font-bold text-charcoal font-mono">
+                    {roiData.summary.totalWon} ({roiData.summary.overallConversionPct}%)
+                  </p>
+                </div>
+                <div className="p-3 bg-cream/50 rounded-lg border border-walnut/15 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-walnut">Won Revenue</span>
+                  <p className="text-base font-bold text-charcoal font-mono">{formatCurrency(roiData.summary.totalRevenue)}</p>
+                </div>
+                <div className="p-3 bg-gold-soft rounded-lg border border-gold/40 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal">Marketing ROI</span>
+                  <p className="text-base font-bold text-charcoal font-mono">
+                    {roiData.summary.overallRoiPct !== null ? `${roiData.summary.overallRoiPct}%` : "Organic (0 Spend)"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Source Breakdown Table */}
+              <div className="overflow-x-auto border border-walnut/15 rounded-lg bg-offwhite">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-cream/70 border-b border-walnut/15 text-[11px] font-bold text-walnut uppercase tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3">Lead Source</th>
+                      <th className="py-2.5 px-3 text-right">Leads</th>
+                      <th className="py-2.5 px-3 text-right">Won</th>
+                      <th className="py-2.5 px-3 text-right">Conv %</th>
+                      <th className="py-2.5 px-3 text-right">Revenue (₹)</th>
+                      <th className="py-2.5 px-3 text-right">Spend (₹)</th>
+                      <th className="py-2.5 px-3 text-right">CPL (₹)</th>
+                      <th className="py-2.5 px-3 text-right">ROI %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-walnut/10">
+                    {roiData.sources.map((s: any) => (
+                      <tr key={s.sourceKey} className="hover:bg-cream/40 transition-colors">
+                        <td className="py-2.5 px-3 font-semibold text-charcoal">{s.sourceName}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-medium text-charcoal">{s.totalLeads}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-medium text-charcoal">{s.wonLeads}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-medium text-charcoal">{s.conversionRatePct}%</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-charcoal">{formatCurrency(s.wonRevenue)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono text-walnut">{formatCurrency(s.spend)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono text-walnut">{formatCurrency(s.costPerLead)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold">
+                          {s.roiPct !== null ? (
+                            <span className={s.roiPct >= 0 ? "text-semantic-success" : "text-semantic-danger"}>
+                              {s.roiPct}%
+                            </span>
+                          ) : (
+                            <span className="text-walnut/60 font-normal">N/A</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {roiData.sources.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="py-6 text-center text-xs text-walnut">
+                          No lead source records configured.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-walnut">Failed to load ROI telemetry data.</div>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-walnut/15">
+            <Button variant="secondary" size="sm" onClick={() => setIsRoiModalOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

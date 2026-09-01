@@ -63,14 +63,14 @@ export default function PipelineBoardPage() {
   return (
     <div className="space-y-4 max-w-[1700px] mx-auto select-none">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+      <div className="flex items-center justify-between pb-2 border-b border-walnut/15">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Lead Pipeline Board</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Visual Kanban tracking of client inquiries across all 10 qualification stages</p>
+          <h1 className="text-xl font-bold text-charcoal tracking-tight">Lead Pipeline Board</h1>
+          <p className="text-xs text-walnut mt-0.5">Visual Kanban tracking of client inquiries across all 11 qualification stages</p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/leads">
-            <Button variant="outline" size="sm" leftIcon={<Table className="w-3.5 h-3.5" />}>
+            <Button variant="secondary" size="sm" leftIcon={<Table className="w-3.5 h-3.5 text-walnut" />}>
               Database Table
             </Button>
           </Link>

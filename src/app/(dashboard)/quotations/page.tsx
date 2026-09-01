@@ -138,7 +138,7 @@ export default function QuotationsPage() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quotations & BOQ</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quotations &amp; BOQ</h1>
               <p className="text-sm text-slate-500">
                 Detailed commercial estimations, itemized room-wise BOQ, and client approval workflow
               </p>
@@ -150,7 +150,7 @@ export default function QuotationsPage() {
           <Link href="/quotations/new">
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-medium shadow-sm">
               <Plus className="w-4 h-4" />
-              Create Quotation
+              New BOQ Form
             </Button>
           </Link>
         </div>

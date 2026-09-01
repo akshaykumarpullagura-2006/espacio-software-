@@ -1,4 +1,12 @@
-export type DashboardPeriod = "OVERALL" | "THIS_MONTH" | "LAST_MONTH" | "THIS_QUARTER" | "THIS_YEAR" | "CUSTOM";
+export type DashboardPeriod =
+  | "TODAY"
+  | "THIS_WEEK"
+  | "THIS_MONTH"
+  | "LAST_MONTH"
+  | "THIS_QUARTER"
+  | "THIS_YEAR"
+  | "OVERALL"
+  | "CUSTOM";
 
 export interface DashboardPeriodOptions {
   period: DashboardPeriod;
@@ -16,6 +24,8 @@ export interface PrimaryKPIs {
   monthlyProfitMarginPct: number | null;
   monthlyRevenue: number;
   monthlyExpenses: number;
+  todayFollowUpsCount: number;
+  pendingApprovalsCount: number;
   isLoss: boolean;
 }
 
@@ -51,7 +61,8 @@ export interface PipelineStageData {
 
 export interface FollowUpItem {
   id: string;
-  type: "LEAD_FOLLOWUP" | "TASK";
+  leadId?: string;
+  type: "LEAD_FOLLOWUP";
   title: string;
   clientOrLeadName: string;
   referenceNo: string;

@@ -154,12 +154,12 @@ export class QuotationService {
     if (filters.search) {
       const q = filters.search.trim();
       where.OR = [
-        { referenceNo: { contains: q, mode: "insensitive" } },
-        { title: { contains: q, mode: "insensitive" } },
-        { lead: { clientName: { contains: q, mode: "insensitive" } } },
-        { client: { fullName: { contains: q, mode: "insensitive" } } },
-        { project: { title: { contains: q, mode: "insensitive" } } },
-        { project: { referenceNo: { contains: q, mode: "insensitive" } } },
+        { referenceNo: { contains: q } },
+        { title: { contains: q } },
+        { lead: { clientName: { contains: q } } },
+        { client: { fullName: { contains: q } } },
+        { project: { title: { contains: q } } },
+        { project: { referenceNo: { contains: q } } },
       ];
     }
 

@@ -218,15 +218,9 @@ export const resolveWarrantyIssueSchema = z.object({
   resolutionNotes: z.string().min(3, "Resolution note is required"),
 });
 
-// Project Task Schema
-export const createProjectTaskSchema = z.object({
-  title: z.string().min(3, "Task title is required"),
-  description: z.string().optional().nullable(),
-  stage: z.string().optional().nullable(),
-  assigneeId: z.string().optional().nullable(),
-  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
-  dueAt: z.string().or(z.date()).optional().nullable(),
-  estimatedMinutes: z.number().int().positive().optional().nullable(),
+// Project Note Schema
+export const addProjectNoteSchema = z.object({
+  note: z.string().min(1, "Note content cannot be empty"),
 });
 
 // Export inferred/input types
@@ -240,4 +234,4 @@ export type CreateQualityCheckInput = z.input<typeof createQualityCheckSchema>;
 export type HandoverProjectInput = z.input<typeof handoverProjectSchema>;
 export type CreateWarrantyIssueInput = z.input<typeof createWarrantyIssueSchema>;
 export type ResolveWarrantyIssueInput = z.input<typeof resolveWarrantyIssueSchema>;
-export type CreateProjectTaskInput = z.input<typeof createProjectTaskSchema>;
+export type AddProjectNoteInput = z.input<typeof addProjectNoteSchema>;

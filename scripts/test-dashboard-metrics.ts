@@ -36,7 +36,7 @@ async function main() {
     { num: 8, name: "Monthly Profit", val: `₹${thisMonthSummary.kpis.monthlyProfit.toLocaleString("en-IN")} (${thisMonthSummary.kpis.monthlyProfitMarginPct ?? "N/A"}% margin)`, ok: typeof thisMonthSummary.kpis.monthlyProfit === "number" },
     { num: 9, name: "Today's Follow-ups", val: `${thisMonthSummary.followUps.todayCount} items`, ok: Array.isArray(thisMonthSummary.followUps.items) },
     { num: 10, name: "Recent Activities", val: `${thisMonthSummary.activities.length} items`, ok: Array.isArray(thisMonthSummary.activities) },
-    { num: 11, name: "Business Performance Charts", val: `Trend: ${thisMonthSummary.financialTrend.length} months | Pipeline: ${thisMonthSummary.pipeline.stages.length} stages`, ok: thisMonthSummary.financialTrend.length === 6 && thisMonthSummary.pipeline.stages.length === 6 },
+    { num: 11, name: "Business Performance Charts", val: `Trend: ${thisMonthSummary.financialTrend.length} months | Pipeline: ${thisMonthSummary.pipeline.stages.length} stages`, ok: thisMonthSummary.financialTrend.length === 6 && thisMonthSummary.pipeline.stages.length >= 6 },
     { num: 12, name: "Quick Access Shortcuts", val: `${thisMonthSummary.quickAccess.length} shortcuts`, ok: thisMonthSummary.quickAccess.length > 0 },
     { num: 13, name: "Notifications Summary", val: `${thisMonthSummary.notifications.totalUnread} unread`, ok: typeof thisMonthSummary.notifications.totalUnread === "number" },
   ];

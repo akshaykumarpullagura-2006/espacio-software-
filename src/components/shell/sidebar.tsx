@@ -9,28 +9,20 @@ import { usePermissions } from "@/components/providers/permissions-provider";
 import {
   LayoutDashboard,
   Users,
-  UserCheck,
   FolderKanban,
   FileText,
-  Wallet,
   Receipt,
+  Wallet,
   Coins,
   Truck,
-  Package,
   ShoppingCart,
-  Boxes,
-  Warehouse,
-  ArrowLeftRight,
-  ClipboardCheck,
+  Package,
   BarChart3,
   Bell,
-  ShieldAlert,
   Settings,
   ChevronLeft,
   ChevronRight,
   X,
-  CheckSquare,
-  Calendar,
 } from "lucide-react";
 
 interface NavItem {
@@ -48,71 +40,30 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: "EXECUTIVE",
+    title: "MAIN",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { label: "Tasks", href: "/tasks", icon: <CheckSquare className="w-4 h-4" />, permission: "tasks:read" },
-      { label: "Calendar", href: "/calendar", icon: <Calendar className="w-4 h-4" />, permission: "calendar:read" },
-    ],
-  },
-  {
-    title: "CRM & CLIENTS",
-    items: [
-      { label: "Leads Pipeline", href: "/leads", icon: <Users className="w-4 h-4" />, permission: "leads:read" },
-      { label: "Clients Directory", href: "/clients", icon: <UserCheck className="w-4 h-4" />, permission: "clients:read" },
-    ],
-  },
-  {
-    title: "PROJECTS & SALES",
-    items: [
+      { label: "Leads", href: "/leads", icon: <Users className="w-4 h-4" />, permission: "leads:read" },
       { label: "Projects", href: "/projects", icon: <FolderKanban className="w-4 h-4" />, permission: "projects:read" },
       { label: "Quotations", href: "/quotations", icon: <FileText className="w-4 h-4" />, permission: "quotations:read" },
-    ],
-  },
-  {
-    title: "FINANCE & ACCOUNTS",
-    items: [
-      { label: "Finance Hub", href: "/finance/overview", icon: <Wallet className="w-4 h-4" />, permission: "finance:view" },
-      { label: "GST Invoices", href: "/finance/invoices", icon: <FileText className="w-4 h-4" />, permission: "finance:invoices" },
-      { label: "Client Payments", href: "/finance/payments", icon: <Receipt className="w-4 h-4" />, permission: "payments:read" },
-      { label: "Vendor Payables", href: "/finance/payables", icon: <Receipt className="w-4 h-4" />, permission: "finance:payables" },
-      { label: "Vendor Payments", href: "/finance/vendor-payments", icon: <Wallet className="w-4 h-4" />, permission: "finance:payments" },
-      { label: "Project Expenses", href: "/finance/expenses", icon: <Receipt className="w-4 h-4" />, permission: "expenses:read" },
-      { label: "Petty Cash Float", href: "/finance/petty-cash", icon: <Coins className="w-4 h-4" />, permission: "petty_cash:read" },
-    ],
-  },
-  {
-    title: "PROCUREMENT",
-    items: [
-      { label: "Procurement Hub", href: "/procurement", icon: <ShoppingCart className="w-4 h-4" />, permission: "material_requests:read" },
-      { label: "Material Requests", href: "/procurement/material-requests", icon: <Package className="w-4 h-4" />, permission: "material_requests:read" },
+      { label: "Payments", href: "/finance/payments", icon: <Receipt className="w-4 h-4" />, permission: "payments:read" },
+      { label: "Expenses", href: "/finance/expenses", icon: <Wallet className="w-4 h-4" />, permission: "expenses:read" },
+      { label: "Petty Cash", href: "/finance/petty-cash", icon: <Coins className="w-4 h-4" />, permission: "petty_cash:read" },
+      { label: "Vendors", href: "/procurement/vendors", icon: <Truck className="w-4 h-4" />, permission: "vendors:read" },
       { label: "Purchase Orders", href: "/procurement/purchase-orders", icon: <ShoppingCart className="w-4 h-4" />, permission: "purchase_orders:read" },
-      { label: "Vendors & Ratings", href: "/procurement/vendors", icon: <Truck className="w-4 h-4" />, permission: "vendors:read" },
+      { label: "Material Requests", href: "/procurement/material-requests", icon: <Package className="w-4 h-4" />, permission: "material_requests:read" },
     ],
   },
   {
-    title: "INVENTORY",
+    title: "INSIGHTS",
     items: [
-      { label: "Inventory Hub", href: "/inventory", icon: <Boxes className="w-4 h-4" />, permission: "inventory:read" },
-      { label: "Material Master", href: "/inventory/materials", icon: <Boxes className="w-4 h-4" />, permission: "inventory:read" },
-      { label: "Warehouses", href: "/inventory/warehouses", icon: <Warehouse className="w-4 h-4" />, permission: "inventory:read" },
-      { label: "Stock Transfers", href: "/inventory/transfers", icon: <ArrowLeftRight className="w-4 h-4" />, permission: "inventory:transfers" },
-      { label: "Stock Ledger", href: "/inventory/ledger", icon: <ClipboardCheck className="w-4 h-4" />, permission: "inventory:read" },
+      { label: "Reports & Analytics", href: "/reports", icon: <BarChart3 className="w-4 h-4" />, permission: "reports:read" },
     ],
   },
   {
-    title: "PEOPLE & TEAM",
+    title: "SYSTEM",
     items: [
-      { label: "Employees & Staff", href: "/employees", icon: <Users className="w-4 h-4" />, permission: "employees:read" },
-    ],
-  },
-  {
-    title: "ANALYTICS & SYSTEM",
-    items: [
-      { label: "Reports & BI", href: "/reports", icon: <BarChart3 className="w-4 h-4" />, permission: "reports:read" },
       { label: "Notifications", href: "/notifications", icon: <Bell className="w-4 h-4" /> },
-      { label: "Documents", href: "/documents", icon: <FileText className="w-4 h-4" />, permission: "documents:read" },
-      { label: "Audit Logs", href: "/audit-logs", icon: <ShieldAlert className="w-4 h-4" />, permission: "audit:read" },
       { label: "Settings", href: "/settings", icon: <Settings className="w-4 h-4" />, permission: "settings:manage" },
     ],
   },
@@ -184,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             )}
 
             {section.items.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
 
               return (
                 <div key={item.href} className="relative group">

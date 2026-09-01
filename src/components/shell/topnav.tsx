@@ -50,16 +50,19 @@ export const TopNav: React.FC<TopNavProps> = ({ user, onOpenMobileMenu }) => {
 
   const getPageTitle = () => {
     if (pathname === "/dashboard") return { title: "Dashboard", desc: "Executive Command Center & Business Overview" };
-    if (pathname === "/leads") return { title: "Leads", desc: "Manage client inquiries and follow-ups" };
-    if (pathname === "/clients") return { title: "Clients", desc: "Client contacts and project associations" };
-    if (pathname === "/projects") return { title: "Projects", desc: "Active project execution and stages" };
-    if (pathname === "/quotations") return { title: "Quotations", desc: "Sales estimates and pricing builder" };
-    if (pathname.startsWith("/finance")) return { title: "Finance", desc: "Client payments, expenses, and petty cash" };
-    if (pathname.startsWith("/procurement")) return { title: "Procurement", desc: "Vendors, purchase orders, and materials" };
-    if (pathname.startsWith("/reports")) return { title: "Reports", desc: "Business metrics and operational analytics" };
-    if (pathname.startsWith("/search")) return { title: "Search Results", desc: "Cross-module search and advanced filter results" };
-    if (pathname === "/audit-logs") return { title: "Audit Logs", desc: "System security and activity audit trail" };
-    if (pathname === "/settings") return { title: "Settings", desc: "Global system configuration and preferences" };
+    if (pathname === "/leads" || pathname.startsWith("/leads")) return { title: "Leads", desc: "Manage client inquiries and sales pipeline" };
+    if (pathname === "/projects" || pathname.startsWith("/projects")) return { title: "Projects", desc: "Active project execution, stages, and quality" };
+    if (pathname === "/quotations" || pathname.startsWith("/quotations")) return { title: "Quotations", desc: "Sales estimates and pricing builder" };
+    if (pathname === "/finance/payments" || pathname.startsWith("/finance/payments")) return { title: "Payments", desc: "Client payment collections and milestone receipts" };
+    if (pathname === "/finance/expenses" || pathname.startsWith("/finance/expenses")) return { title: "Expenses", desc: "Project costs and operational expense vouchers" };
+    if (pathname === "/finance/petty-cash" || pathname.startsWith("/finance/petty-cash")) return { title: "Petty Cash", desc: "Site cash float and employee advances" };
+    if (pathname === "/procurement/vendors" || pathname.startsWith("/procurement/vendors")) return { title: "Vendors", desc: "Supplier directory, commercial terms, and ratings" };
+    if (pathname === "/procurement/purchase-orders" || pathname.startsWith("/procurement/purchase-orders")) return { title: "Purchase Orders", desc: "Procurement orders and tracking" };
+    if (pathname === "/procurement/material-requests" || pathname.startsWith("/procurement/material-requests")) return { title: "Material Requests", desc: "Site item requisitions and approvals" };
+    if (pathname.startsWith("/reports")) return { title: "Reports & Analytics", desc: "Financial P&L, project margins, and business intelligence" };
+    if (pathname.startsWith("/notifications")) return { title: "Notifications", desc: "System alerts and reminder center" };
+    if (pathname.startsWith("/settings")) return { title: "Settings", desc: "Global system configuration and preferences" };
+    if (pathname.startsWith("/search")) return { title: "Search Results", desc: "Cross-module search and filter results" };
     return { title: "ESPACIO ERP", desc: "Enterprise operations" };
   };
 

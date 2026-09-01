@@ -52,19 +52,19 @@ export class DuplicateClientDetectionService {
     }
 
     if (normEmail) {
-      whereOr.push({ email: { equals: normEmail, mode: "insensitive" } });
+      whereOr.push({ email: { equals: normEmail } });
     }
 
     if (normGstin) {
-      whereOr.push({ gstin: { equals: normGstin, mode: "insensitive" } });
+      whereOr.push({ gstin: { equals: normGstin } });
     }
 
     if (normCompany && normCompany.length >= 3) {
-      whereOr.push({ companyName: { contains: normCompany, mode: "insensitive" } });
+      whereOr.push({ companyName: { contains: normCompany } });
     }
 
     if (normName && normName.length >= 3) {
-      whereOr.push({ fullName: { contains: normName, mode: "insensitive" } });
+      whereOr.push({ fullName: { contains: normName } });
     }
 
     if (whereOr.length === 0) {

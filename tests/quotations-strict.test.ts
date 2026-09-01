@@ -53,13 +53,22 @@ describe("Prompt 05: Quotation Management + BOQ + Pricing Engine + Client Approv
       });
     }
 
-    await db.userPermissionOverride.createMany({
-      data: [
-        { userId: regularStaffUser.id, permissionId: readPerm.id, effect: "ALLOW" },
-        { userId: regularStaffUser.id, permissionId: writePerm.id, effect: "ALLOW" },
-      ],
-      skipDuplicates: true,
-    });
+    for (const pId of [readPerm.id, writePerm.id]) {
+      await db.userPermissionOverride.upsert({
+        where: {
+          userId_permissionId: {
+            userId: regularStaffUser.id,
+            permissionId: pId,
+          },
+        },
+        update: { effect: "ALLOW" },
+        create: {
+          userId: regularStaffUser.id,
+          permissionId: pId,
+          effect: "ALLOW",
+        },
+      });
+    }
 
     // 3. Create test lead
     const leadRes = await LeadService.createLead(

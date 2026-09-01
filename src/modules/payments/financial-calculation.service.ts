@@ -112,18 +112,66 @@ export class FinancialCalculationService {
 
     return {
       clientId: client.id,
+      clientReferenceNo: client.referenceNo,
       clientName: client.fullName,
+      phone: client.phone || "N/A",
+      activeProjectsCount: client.projects.length,
       totalContractValue,
-      totalPaid,
-      totalOutstanding,
+      totalVerifiedPaid: totalPaid,
+      totalPendingBalance: totalOutstanding,
     };
   }
 
   public static async calculateClientReceivables(clientId?: string) {
     if (!clientId) {
-      const clients = await db.client.findMany({ select: { id: true } });
-      return Promise.all(clients.map((c) => this.calculateClientTotalFinancials(c.id)));
+      const clients = await db.client.findMany({
+        select: {
+          id: true,
+          referenceNo: true,
+          fullName: true,
+          phone: true,
+          projects: {
+            where: { status: { not: "CANCELLED" } },
+            include: {
+              payments: {
+                where: { status: "VERIFIED" },
+                select: { amount: true },
+              },
+            },
+          },
+        },
+        orderBy: { fullName: "asc" },
+      });
+
+      return clients.map((c) => {
+        let totalContractValue = 0;
+        let totalVerifiedPaid = 0;
+
+        for (const proj of c.projects) {
+          const val = proj.revisedBudget || proj.contractValue || 0;
+          totalContractValue += val;
+          for (const p of proj.payments) {
+            totalVerifiedPaid += p.amount;
+          }
+        }
+
+        totalContractValue = this.roundCurrency(totalContractValue);
+        totalVerifiedPaid = this.roundCurrency(totalVerifiedPaid);
+        const totalPendingBalance = this.roundCurrency(Math.max(0, totalContractValue - totalVerifiedPaid));
+
+        return {
+          clientId: c.id,
+          clientReferenceNo: c.referenceNo,
+          clientName: c.fullName,
+          phone: c.phone || "N/A",
+          activeProjectsCount: c.projects.length,
+          totalContractValue,
+          totalVerifiedPaid,
+          totalPendingBalance,
+        };
+      });
     }
     return this.calculateClientTotalFinancials(clientId);
   }
 }
+

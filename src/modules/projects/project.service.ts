@@ -56,6 +56,56 @@ export class ProjectService {
   }
 
   /**
+   * Calculate 30-60 day post-handover review & referral timing status
+   */
+  public static calculateReviewReferralStatus(project: {
+    handoverDate?: Date | string | null;
+    stage?: string | null;
+    status?: string | null;
+  }) {
+    if (!project.handoverDate) {
+      return {
+        status: "NOT_APPLICABLE",
+        badge: "Not Handed Over",
+        message: "Review prompt unlocks after formal project handover",
+        daysSinceHandover: 0,
+        isDue: false,
+      };
+    }
+
+    const handover = new Date(project.handoverDate);
+    const now = new Date();
+    const daysSince = Math.floor((now.getTime() - handover.getTime()) / (1000 * 3600 * 24));
+
+    if (daysSince < 30) {
+      const daysLeft = 30 - daysSince;
+      return {
+        status: "SCHEDULED",
+        badge: `Due in ${daysLeft} days`,
+        message: `30-60 Day Review window opens in ${daysLeft} days (${daysSince}/30 days post-handover)`,
+        daysSinceHandover: daysSince,
+        isDue: false,
+      };
+    } else if (daysSince <= 60) {
+      return {
+        status: "DUE_NOW",
+        badge: `Due Now (Day ${daysSince})`,
+        message: `Client Review & Referral Follow-up is DUE NOW (${daysSince} days post-handover)`,
+        daysSinceHandover: daysSince,
+        isDue: true,
+      };
+    } else {
+      return {
+        status: "PAST_WINDOW",
+        badge: `${daysSince}d Post-Handover`,
+        message: `Review window elapsed (${daysSince} days post-handover). Feedback & referral collection recommended.`,
+        daysSinceHandover: daysSince,
+        isDue: true,
+      };
+    }
+  }
+
+  /**
    * Create a new Project with lead/quotation inheritance and sequential numbering
    */
   public static async createProject(input: any, userId?: string) {
@@ -304,11 +354,11 @@ export class ProjectService {
     if (params.search && params.search.trim().length > 0) {
       const q = params.search.trim();
       where.OR = [
-        { referenceNo: { contains: q, mode: "insensitive" } },
-        { title: { contains: q, mode: "insensitive" } },
-        { siteAddress: { contains: q, mode: "insensitive" } },
-        { city: { contains: q, mode: "insensitive" } },
-        { client: { fullName: { contains: q, mode: "insensitive" } } },
+        { referenceNo: { contains: q } },
+        { title: { contains: q } },
+        { siteAddress: { contains: q } },
+        { city: { contains: q } },
+        { client: { fullName: { contains: q } } },
       ];
     }
 
@@ -416,12 +466,8 @@ export class ProjectService {
           orderBy: { createdAt: "desc" },
           take: 5,
         },
-        tasks: {
-          orderBy: { createdAt: "desc" },
-          take: 20,
-          include: {
-            assignee: { select: { id: true, fullName: true } },
-          },
+        paymentMilestones: {
+          orderBy: { dueDate: "asc" },
         },
         qualityChecks: {
           orderBy: { createdAt: "desc" },
@@ -464,6 +510,7 @@ export class ProjectService {
 
     const timeline = await ActivityService.getTimeline("Project", project.id);
     const delayHealth = this.calculateDelayHealth(project);
+    const reviewReferralStatus = this.calculateReviewReferralStatus(project);
     const progressPct = ProjectStageService.calculateProgress(project.stage);
 
     // Calculate live financial figures directly from canonical tables
@@ -512,6 +559,7 @@ export class ProjectService {
       project: sanitizedProject,
       timeline,
       delayHealth,
+      reviewReferralStatus,
       financialSummary,
       canViewFinancials,
       stageDefinitions: ProjectStageService.getStageDefinitions(),
@@ -618,34 +666,6 @@ export class ProjectService {
     // Automatic Handover & Warranty Initialization
     if (targetStage === "PROJECT_HANDOVER" || targetStage === "PROJECT_COMPLETED") {
       await WarrantyService.initializeWarranty(id, 12);
-
-      // Post-Handover 30-60 Day Review Task
-      const reviewDate = new Date();
-      reviewDate.setDate(reviewDate.getDate() + 45);
-
-      let taskNo: string;
-      try {
-        taskNo = await IdGeneratorService.generate("TSK");
-      } catch {
-        taskNo = `TSK-${Date.now()}`;
-      }
-
-      const creatorId = userId || (await db.user.findFirst({ select: { id: true } }))?.id;
-      if (creatorId) {
-        await db.task.create({
-          data: {
-            referenceNo: taskNo,
-            title: `30-60 Day Review & Referral Follow-up: ${project.title}`,
-            description: `Post-handover follow-up call with client to collect feedback and request referral leads for ${project.referenceNo}.`,
-            projectId: id,
-            clientId: project.clientId,
-            dueAt: reviewDate,
-            priority: "NORMAL",
-            status: "TODO",
-            createdById: creatorId,
-          },
-        }).catch(() => {});
-      }
     }
 
     await AuditService.logEvent({
@@ -807,47 +827,51 @@ export class ProjectService {
   }
 
   /**
-   * Create a project task linked to stage
+   * Add a timestamped note to the project history
    */
-  public static async createProjectTask(projectId: string, input: any, actorUserId: string) {
+  public static async addNote(projectId: string, noteText: string, userId?: string) {
     const project = await db.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundError("Project record not found");
 
-    let taskNo: string;
-    try {
-      taskNo = await IdGeneratorService.generate("TSK");
-    } catch {
-      taskNo = `TSK-${Date.now()}`;
-    }
+    const author = userId ? await db.user.findUnique({ where: { id: userId }, select: { fullName: true, email: true } }) : null;
+    const authorName = author?.fullName || "System User";
+    const timestamp = new Date().toISOString();
 
-    const task = await db.task.create({
-      data: {
-        referenceNo: taskNo,
-        title: input.title,
-        description: input.description || null,
-        projectId,
-        clientId: project.clientId,
-        assigneeId: input.assigneeId || null,
-        priority: input.priority || "NORMAL",
-        status: "TODO",
-        dueAt: input.dueAt ? new Date(input.dueAt) : null,
-        estimatedMinutes: input.estimatedMinutes || null,
-        createdById: actorUserId,
-      },
-      include: {
-        assignee: { select: { id: true, fullName: true } },
-      },
+    const noteEntry = `[${timestamp}] ${authorName}: ${noteText.trim()}`;
+    const updatedNotes = project.notes ? `${project.notes}\n${noteEntry}` : noteEntry;
+
+    const updated = await db.project.update({
+      where: { id: projectId },
+      data: { notes: updatedNotes },
     });
 
     await AuditService.logEvent({
-      userId: actorUserId,
-      action: "PROJECT_TASK_CREATED",
+      userId,
+      action: "PROJECT_NOTE_ADDED",
       entityType: "Project",
       entityId: projectId,
-      newValues: { taskNo, title: task.title, stage: input.stage },
+      newValues: { note: noteText },
     });
 
-    return task;
+    await ActivityService.record({
+      userId,
+      entityType: "Project",
+      entityId: projectId,
+      type: "STATUS_CHANGE",
+      title: `Project Note Added by ${authorName}`,
+      description: noteText,
+    });
+
+    return {
+      success: true,
+      project: updated,
+      note: {
+        id: `note-${Date.now()}`,
+        author: authorName,
+        text: noteText,
+        createdAt: timestamp,
+      },
+    };
   }
 
   /**

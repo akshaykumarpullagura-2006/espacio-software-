@@ -5,22 +5,23 @@ import { AuthError, NotFoundError } from "@/lib/errors";
 import { InventoryCalculationService } from "@/modules/inventory/inventory-calculation.service";
 import { db } from "@/lib/db";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await AuthService.getSessionFromCookies();
     if (!session) throw new AuthError();
 
+    const { id } = await params;
     const { searchParams } = new URL(req.url);
     const warehouseId = searchParams.get("warehouseId") || undefined;
 
-    const material = await db.material.findUnique({ where: { id: params.id } });
+    const material = await db.material.findUnique({ where: { id } });
     if (!material) throw new NotFoundError("Material not found");
 
-    const summary = await InventoryCalculationService.calculateStockSummary(params.id, warehouseId);
-    const projectBreakdown = await InventoryCalculationService.calculateProjectSiteStock(params.id, params.id);
+    const summary = await InventoryCalculationService.calculateStockSummary(id, warehouseId);
+    const projectBreakdown = await InventoryCalculationService.calculateProjectSiteStock(id, id);
 
     const warehouseBreakdowns = await db.stockBalance.findMany({
-      where: { materialId: params.id },
+      where: { materialId: id },
       include: {
         warehouse: { select: { warehouseCode: true, name: true, type: true } },
         location: { select: { code: true, zone: true } },

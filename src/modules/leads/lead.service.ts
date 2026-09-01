@@ -174,7 +174,7 @@ export class LeadService {
 
     // 5. Tags filter
     if (params.tags) {
-      where.tags = { contains: params.tags, mode: "insensitive" };
+      where.tags = { contains: params.tags };
     }
 
     // 6. Budget range
@@ -197,12 +197,12 @@ export class LeadService {
     if (params.search && params.search.trim().length > 0) {
       const q = params.search.trim();
       where.OR = [
-        { referenceNo: { contains: q, mode: "insensitive" } },
-        { clientName: { contains: q, mode: "insensitive" } },
+        { referenceNo: { contains: q } },
+        { clientName: { contains: q } },
         { phone: { contains: q } },
-        { email: { contains: q, mode: "insensitive" } },
-        { location: { contains: q, mode: "insensitive" } },
-        { requirement: { contains: q, mode: "insensitive" } },
+        { email: { contains: q } },
+        { location: { contains: q } },
+        { requirement: { contains: q } },
       ];
     }
 
@@ -578,8 +578,8 @@ export class LeadService {
       sourceGroupCounts,
     ] = await Promise.all([
       db.lead.count({ where }),
-      db.lead.count({ where: { ...where, stage: { notIn: ["WON", "LOST"] } } }),
-      db.lead.count({ where: { ...where, stage: "WON" } }),
+      db.lead.count({ where: { ...where, stage: { notIn: ["WON", "PROJECT_CREATED", "LOST"] } } }),
+      db.lead.count({ where: { ...where, stage: { in: ["WON", "PROJECT_CREATED"] } } }),
       db.lead.count({ where: { ...where, stage: "LOST" } }),
       db.leadFollowUp.count({
         where: {
@@ -602,11 +602,11 @@ export class LeadService {
       }),
       db.lead.count({ where: { ...where, stage: "NEGOTIATION" } }),
       db.lead.findMany({
-        where: { ...where, stage: { notIn: ["WON", "LOST"] } },
+        where: { ...where, stage: { notIn: ["WON", "PROJECT_CREATED", "LOST"] } },
         select: { estimatedBudget: true },
       }),
       db.lead.findMany({
-        where: { ...where, stage: "WON" },
+        where: { ...where, stage: { in: ["WON", "PROJECT_CREATED"] } },
         select: { estimatedBudget: true, quotations: { where: { status: "APPROVED" }, select: { totalAmount: true } } },
       }),
       db.lead.groupBy({
@@ -655,6 +655,117 @@ export class LeadService {
         source: g.sourceKey,
         count: g._count._all,
       })),
+    };
+  }
+
+  /**
+   * Lead Source ROI Tracking Calculation
+   */
+  public static async getLeadSourceRoi() {
+    const [sources, leadsBySource, wonLeadsBySource, marketingExpenses] = await Promise.all([
+      db.leadSourceConfig.findMany({
+        where: { isActive: true },
+        orderBy: { displayOrder: "asc" },
+      }),
+      db.lead.groupBy({
+        by: ["sourceKey"],
+        _count: { _all: true },
+        _sum: { estimatedBudget: true },
+      }),
+      db.lead.findMany({
+        where: { stage: { in: ["WON", "PROJECT_CREATED"] } },
+        select: {
+          sourceKey: true,
+          estimatedBudget: true,
+          quotations: { where: { status: "APPROVED" }, select: { totalAmount: true } },
+          project: { select: { contractValue: true } },
+        },
+      }),
+      db.expense.findMany({
+        where: {
+          status: "APPROVED",
+          OR: [
+            { categoryKey: "MARKETING" },
+            { categoryKey: "ADVERTISING" },
+            { description: { contains: "MARKETING" } },
+            { description: { contains: "ADS" } },
+          ],
+        },
+        select: { amount: true, description: true, categoryKey: true },
+      }),
+    ]);
+
+    const leadCountMap = new Map<string, { total: number; totalBudget: number }>();
+    leadsBySource.forEach((item) => {
+      leadCountMap.set(item.sourceKey, {
+        total: item._count._all,
+        totalBudget: item._sum.estimatedBudget || 0,
+      });
+    });
+
+    const wonValueMap = new Map<string, { count: number; revenue: number }>();
+    wonLeadsBySource.forEach((lead) => {
+      const existing = wonValueMap.get(lead.sourceKey) || { count: 0, revenue: 0 };
+      const contractVal = lead.project?.contractValue || lead.quotations[0]?.totalAmount || lead.estimatedBudget || 0;
+      wonValueMap.set(lead.sourceKey, {
+        count: existing.count + 1,
+        revenue: existing.revenue + contractVal,
+      });
+    });
+
+    // Calculate marketing spend per source if descriptions mention the source key, otherwise distribute evenly or 0
+    const sourceStats = sources.map((source) => {
+      const leadData = leadCountMap.get(source.key) || { total: 0, totalBudget: 0 };
+      const wonData = wonValueMap.get(source.key) || { count: 0, revenue: 0 };
+
+      // Calculate source-specific spend
+      const directSpend = marketingExpenses
+        .filter((e) => e.description?.toUpperCase().includes(source.key.toUpperCase()) || e.description?.toUpperCase().includes(source.name.toUpperCase()))
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      const totalLeads = leadData.total;
+      const wonLeads = wonData.count;
+      const wonRevenue = wonData.revenue;
+      const spend = directSpend;
+
+      const conversionRatePct = totalLeads > 0 ? Number(((wonLeads / totalLeads) * 100).toFixed(1)) : 0;
+      const costPerLead = spend > 0 && totalLeads > 0 ? Number((spend / totalLeads).toFixed(0)) : 0;
+      const costPerAcquisition = spend > 0 && wonLeads > 0 ? Number((spend / wonLeads).toFixed(0)) : 0;
+      const netProfit = wonRevenue - spend;
+      const roiPct = spend > 0 ? Number((((wonRevenue - spend) / spend) * 100).toFixed(1)) : null;
+
+      return {
+        sourceKey: source.key,
+        sourceName: source.name,
+        totalLeads,
+        wonLeads,
+        conversionRatePct,
+        wonRevenue,
+        spend,
+        costPerLead,
+        costPerAcquisition,
+        netProfit,
+        roiPct,
+      };
+    });
+
+    const totalLeadsAll = sourceStats.reduce((s, x) => s + x.totalLeads, 0);
+    const totalWonAll = sourceStats.reduce((s, x) => s + x.wonLeads, 0);
+    const totalRevenueAll = sourceStats.reduce((s, x) => s + x.wonRevenue, 0);
+    const totalSpendAll = sourceStats.reduce((s, x) => s + x.spend, 0);
+    const overallConversionPct = totalLeadsAll > 0 ? Number(((totalWonAll / totalLeadsAll) * 100).toFixed(1)) : 0;
+    const overallRoiPct = totalSpendAll > 0 ? Number((((totalRevenueAll - totalSpendAll) / totalSpendAll) * 100).toFixed(1)) : null;
+
+    return {
+      summary: {
+        totalLeads: totalLeadsAll,
+        totalWon: totalWonAll,
+        totalRevenue: totalRevenueAll,
+        totalSpend: totalSpendAll,
+        overallConversionPct,
+        overallRoiPct,
+      },
+      sources: sourceStats,
     };
   }
 

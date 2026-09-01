@@ -212,17 +212,17 @@ async function main() {
     }
   }
 
-  // 4. Seed Financial Accounts
-  const hdfcAcc = await prisma.financialAccount.upsert({
+  // 4. Seed Financial Accounts (Opening & Current Balance = 0)
+  await prisma.financialAccount.upsert({
     where: { accountCode: "ACC-0001" },
-    update: { currentBalance: 500000 },
+    update: { openingBalance: 0, currentBalance: 0 },
     create: {
       accountCode: "ACC-0001",
       name: "HDFC Operating Bank Account",
       type: "BANK",
       currency: "INR",
-      openingBalance: 500000,
-      currentBalance: 500000,
+      openingBalance: 0,
+      currentBalance: 0,
       bankName: "HDFC Bank",
       accountNo: "50200012345678",
       ifscCode: "HDFC0001234",
@@ -230,167 +230,36 @@ async function main() {
     },
   });
 
-  const cashAcc = await prisma.financialAccount.upsert({
+  await prisma.financialAccount.upsert({
     where: { accountCode: "ACC-0002" },
-    update: { currentBalance: 50000 },
+    update: { openingBalance: 0, currentBalance: 0 },
     create: {
       accountCode: "ACC-0002",
       name: "Main Office Cash Locker",
       type: "CASH",
       currency: "INR",
-      openingBalance: 50000,
-      currentBalance: 50000,
+      openingBalance: 0,
+      currentBalance: 0,
       status: "ACTIVE",
     },
   });
 
-  const upiAcc = await prisma.financialAccount.upsert({
+  await prisma.financialAccount.upsert({
     where: { accountCode: "ACC-0003" },
-    update: { currentBalance: 75000 },
+    update: { openingBalance: 0, currentBalance: 0 },
     create: {
       accountCode: "ACC-0003",
       name: "Company PhonePe / UPI Merchant",
       type: "UPI",
       currency: "INR",
-      openingBalance: 75000,
-      currentBalance: 75000,
+      openingBalance: 0,
+      currentBalance: 0,
       status: "ACTIVE",
     },
   });
 
-  console.log("✅ Seeded Financial Accounts (HDFC, Cash Locker, UPI).");
-
-  // 5. Seed Vendor & Sample Vendor Payable / Payment
-  const venasai = await prisma.vendor.upsert({
-    where: { referenceNo: "VEN-2026-0001" },
-    update: {},
-    create: {
-      referenceNo: "VEN-2026-0001",
-      name: "Sri Sai Plywood & Hardware Supplies",
-      legalName: "Sri Sai Plywood Enterprises Pvt Ltd",
-      categoryKey: "PLYWOOD",
-      contactPerson: "Venkat Rao",
-      phone: "+91 98480 12345",
-      email: "sai.plywood@gmail.com",
-      address: "Plot 14, Timber Depot Road, Goshamahal",
-      city: "Hyderabad",
-      state: "Telangana",
-      gstin: "36ABCDE1234F1Z5",
-      paymentTermsKey: "DAYS_30",
-      creditLimit: 500000,
-      status: "ACTIVE",
-    },
-  });
-
-  const year = new Date().getFullYear();
-
-  const payable = await prisma.vendorPayable.upsert({
-    where: { payableNo: `VPAYABLE-${year}-0001` },
-    update: {},
-    create: {
-      payableNo: `VPAYABLE-${year}-0001`,
-      vendorId: venasai.id,
-      amount: 125000,
-      paidAmount: 50000,
-      outstandingAmount: 75000,
-      status: "PARTIALLY_PAID",
-      dueDate: new Date(Date.now() + 15 * 86400000),
-      notes: "Plywood and HDHMR supply delivery invoice",
-    },
-  });
-
-  const vpay = await prisma.vendorPayment.upsert({
-    where: { paymentNo: `VPAY-${year}-0001` },
-    update: {},
-    create: {
-      paymentNo: `VPAY-${year}-0001`,
-      vendorId: venasai.id,
-      payableId: payable.id,
-      financialAccountId: hdfcAcc.id,
-      recordedById: hassanUser.id,
-      amount: 50000,
-      paymentDate: new Date(),
-      paymentMethod: "BANK_TRANSFER",
-      referenceNoExt: "UTR-9911228844",
-      status: "VERIFIED",
-      notes: "First partial payment via NEFT from HDFC Operating Account",
-    },
-  });
-
-  // Seed Financial Ledger Entry for Vendor Payment (Outflow)
-  await prisma.financialLedger.upsert({
-    where: { entryNo: `LED-${year}-0001` },
-    update: {},
-    create: {
-      entryNo: `LED-${year}-0001`,
-      transactionDate: new Date(),
-      direction: "OUTFLOW",
-      sourceType: "VENDOR_PAYMENT",
-      sourceId: vpay.id,
-      financialAccountId: hdfcAcc.id,
-      vendorId: venasai.id,
-      categoryKey: "MATERIAL",
-      amount: 50000,
-      paymentMethod: "BANK_TRANSFER",
-      referenceNoExt: "UTR-9911228844",
-      status: "RECORDED",
-      notes: `Vendor Payment ${vpay.paymentNo} to ${venasai.name}`,
-    },
-  });
-
-  console.log(`✅ Seeded Vendor Payable ${payable.payableNo} & Vendor Payment ${vpay.paymentNo}.`);
-
-  // 6. Seed Sample GST Invoice
-  const invoice = await prisma.gstInvoice.upsert({
-    where: { invoiceNo: `INV-${year}-0001` },
-    update: {},
-    create: {
-      invoiceNo: `INV-${year}-0001`,
-      invoiceDate: new Date(),
-      customerName: "Dr. Vikram Sharma",
-      customerGstin: "36AAAPL1234C1Z9",
-      customerAddress: "Villa 14, Rainbow Vistas, Kukatpally, Hyderabad",
-      stateCode: "36",
-      placeOfSupply: "Telangana",
-      isInterState: false,
-      taxableAmount: 200000,
-      cgstAmount: 18000,
-      sgstAmount: 18000,
-      igstAmount: 0,
-      totalTax: 36000,
-      roundOff: 0,
-      grandTotal: 236000,
-      paidAmount: 100000,
-      outstandingAmount: 136000,
-      status: "PARTIALLY_PAID",
-      notes: "First stage interior execution tax invoice",
-      items: {
-        create: [
-          {
-            description: "Custom Teakwood Paneling & False Ceiling Work",
-            hsnSacCode: "995476",
-            quantity: 1,
-            unitKey: "NOS",
-            unitRate: 200000,
-            amount: 200000,
-            taxableValue: 200000,
-            gstRate: 18,
-            cgstRate: 9,
-            cgstAmount: 18000,
-            sgstRate: 9,
-            sgstAmount: 18000,
-            igstRate: 0,
-            igstAmount: 0,
-            totalAmount: 236000,
-          },
-        ],
-      },
-    },
-  });
-
-  console.log(`✅ Seeded GST Invoice ${invoice.invoiceNo}.`);
-
-  console.log("🎉 Finance database seeding completed successfully!");
+  console.log("✅ Seeded Financial Accounts with clean zero balances.");
+  console.log("🎉 Clean production seeding completed successfully with ZERO business data!");
 }
 
 main()

@@ -612,6 +612,8 @@ describe("ESPACIO ERP Master Prompt 08 — Strict Project Management & Execution
   });
 
   it("TEST 21: Verify historical stage migration preserved legacy projects in DB", async () => {
+    await ProjectStageService.migrateLegacyStages();
+
     const legacyProjects = await db.project.findMany({
       where: {
         stage: { in: ["INITIATED", "INITIATION", "PRODUCTION_IN_PROGRESS"] },

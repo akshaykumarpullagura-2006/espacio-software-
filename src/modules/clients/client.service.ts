@@ -68,7 +68,7 @@ export class ClientService {
 
     // 4. City / Location Filter
     if (filters.city) {
-      where.city = { contains: filters.city.trim(), mode: "insensitive" };
+      where.city = { contains: filters.city.trim() };
     }
 
     // 5. Active Project Filter
@@ -99,15 +99,15 @@ export class ClientService {
     if (filters.search) {
       const q = filters.search.trim();
       const searchConditions = [
-        { referenceNo: { contains: q, mode: "insensitive" } },
-        { fullName: { contains: q, mode: "insensitive" } },
-        { companyName: { contains: q, mode: "insensitive" } },
+        { referenceNo: { contains: q } },
+        { fullName: { contains: q } },
+        { companyName: { contains: q } },
         { phone: { contains: q } },
         { alternatePhone: { contains: q } },
-        { email: { contains: q, mode: "insensitive" } },
-        { gstin: { contains: q, mode: "insensitive" } },
-        { city: { contains: q, mode: "insensitive" } },
-        { tags: { contains: q, mode: "insensitive" } },
+        { email: { contains: q } },
+        { gstin: { contains: q } },
+        { city: { contains: q } },
+        { tags: { contains: q } },
       ];
 
       if (where.OR) {

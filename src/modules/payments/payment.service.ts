@@ -623,5 +623,184 @@ export class PaymentService {
 
     return { payment, financials };
   }
+
+  /**
+   * DYNAMIC PAYMENT TIMELINE FOR PROJECT
+   */
+  public static async getPaymentTimeline(projectId: string) {
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      include: {
+        client: { select: { id: true, fullName: true, referenceNo: true } },
+        paymentMilestones: {
+          orderBy: { dueDate: "asc" },
+        },
+        payments: {
+          orderBy: { paymentDate: "asc" },
+          include: {
+            milestone: { select: { id: true, title: true } },
+            financialAccount: { select: { id: true, name: true, accountCode: true } },
+          },
+        },
+      },
+    });
+
+    if (!project) throw new NotFoundError("Project record not found");
+
+    const events: Array<{
+      id: string;
+      type: "MILESTONE_SCHEDULED" | "PAYMENT_RECORDED" | "PAYMENT_VERIFIED" | "PAYMENT_REVERSED" | "MILESTONE_SETTLED";
+      date: Date;
+      title: string;
+      description?: string;
+      amount?: number;
+      status?: string;
+      referenceNo?: string;
+      externalReference?: string;
+      paymentMethod?: string;
+    }> = [];
+
+    // Add milestone events
+    for (const m of project.paymentMilestones) {
+      events.push({
+        id: `ms-${m.id}`,
+        type: "MILESTONE_SCHEDULED",
+        date: m.dueDate || m.createdAt,
+        title: `Milestone Scheduled: ${m.title}`,
+        description: `${m.milestonePct}% milestone commitment (Due: ${m.dueDate ? new Date(m.dueDate).toLocaleDateString("en-IN") : "TBD"})`,
+        amount: m.amount,
+        status: m.status,
+      });
+
+      if (m.status === "PAID" && m.paidAmount >= m.amount) {
+        events.push({
+          id: `ms-paid-${m.id}`,
+          type: "MILESTONE_SETTLED",
+          date: m.updatedAt,
+          title: `Milestone 100% Settled: ${m.title}`,
+          description: `Total ₹${m.paidAmount.toLocaleString()} collected in full for this milestone.`,
+          amount: m.paidAmount,
+          status: "PAID",
+        });
+      }
+    }
+
+    // Add payment events
+    for (const p of project.payments) {
+      events.push({
+        id: `pay-${p.id}`,
+        type: "PAYMENT_RECORDED",
+        date: p.paymentDate,
+        title: `Payment Receipt: ${p.referenceNo}`,
+        description: `Received via ${p.paymentMethod.replace(/_/g, " ")}${p.referenceNoExt ? ` (Ref: ${p.referenceNoExt})` : ""}${p.milestone ? ` for ${p.milestone.title}` : ""}. Status: ${p.status}`,
+        amount: p.amount,
+        status: p.status,
+        referenceNo: p.referenceNo,
+        externalReference: p.referenceNoExt || undefined,
+        paymentMethod: p.paymentMethod,
+      });
+
+      if (p.status === "VERIFIED" && p.verifiedAt) {
+        events.push({
+          id: `pay-ver-${p.id}`,
+          type: "PAYMENT_VERIFIED",
+          date: p.verifiedAt,
+          title: `Payment Confirmed: ${p.referenceNo}`,
+          description: `Admin verified and confirmed receipt of ₹${p.amount.toLocaleString()}.`,
+          amount: p.amount,
+          status: "VERIFIED",
+          referenceNo: p.referenceNo,
+        });
+      }
+
+      if (p.status === "REVERSED") {
+        events.push({
+          id: `pay-rev-${p.id}`,
+          type: "PAYMENT_REVERSED",
+          date: p.updatedAt,
+          title: `Payment Reversed: ${p.referenceNo}`,
+          description: `Reversal Reason: ${p.reversedReason || "Administrative reversal"}. Financial balance restored.`,
+          amount: p.amount,
+          status: "REVERSED",
+          referenceNo: p.referenceNo,
+        });
+      }
+    }
+
+    // Sort chronologically
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const financials = await FinancialCalculationService.calculateProjectFinancials(projectId);
+
+    return {
+      project: {
+        id: project.id,
+        referenceNo: project.referenceNo,
+        title: project.title,
+        client: project.client,
+      },
+      financials,
+      milestones: project.paymentMilestones,
+      events,
+    };
+  }
+
+  /**
+   * HIGH LEVEL KPI SUMMARY FOR PAYMENTS MODULE
+   */
+  public static async getPaymentsSummary() {
+    const [
+      activeProjectsAgg,
+      totalVerifiedAgg,
+      totalRecordedAgg,
+      verifiedCount,
+      recordedCount,
+      reversedCount,
+    ] = await Promise.all([
+      db.project.aggregate({
+        _sum: { contractValue: true, revisedBudget: true },
+        where: { status: { not: "CANCELLED" } },
+      }),
+      db.clientPayment.aggregate({
+        _sum: { amount: true },
+        where: { status: "VERIFIED" },
+      }),
+      db.clientPayment.aggregate({
+        _sum: { amount: true },
+        where: { status: "RECORDED" },
+      }),
+      db.clientPayment.count({ where: { status: "VERIFIED" } }),
+      db.clientPayment.count({ where: { status: "RECORDED" } }),
+      db.clientPayment.count({ where: { status: "REVERSED" } }),
+    ]);
+
+    const totalProjects = await db.project.findMany({
+      where: { status: { not: "CANCELLED" } },
+      select: { contractValue: true, revisedBudget: true },
+    });
+
+    let totalProjectValue = 0;
+    for (const proj of totalProjects) {
+      totalProjectValue += proj.revisedBudget || proj.contractValue || 0;
+    }
+
+    const totalVerifiedPaid = FinanceCalculationService.roundMoney(totalVerifiedAgg._sum.amount || 0);
+    const totalPendingRecorded = FinanceCalculationService.roundMoney(totalRecordedAgg._sum.amount || 0);
+    const totalOutstandingReceivables = FinanceCalculationService.roundMoney(
+      Math.max(0, totalProjectValue - totalVerifiedPaid)
+    );
+
+    return {
+      totalProjectValue: FinanceCalculationService.roundMoney(totalProjectValue),
+      totalVerifiedPaid,
+      totalPendingRecorded,
+      totalOutstandingReceivables,
+      verifiedCount,
+      recordedCount,
+      reversedCount,
+      totalPaymentsCount: verifiedCount + recordedCount + reversedCount,
+    };
+  }
 }
+
 

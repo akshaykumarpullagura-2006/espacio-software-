@@ -55,7 +55,7 @@ export interface StatCardProps {
   value: string | number;
   subtitle?: string;
   trend?: string;
-  trendType?: "positive" | "negative" | "neutral";
+  trendType?: "positive" | "negative" | "warning" | "neutral";
   icon?: React.ReactNode;
   emptyContext?: string;
 }
@@ -72,6 +72,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   const trendColors = {
     positive: "text-semantic-success font-semibold",
     negative: "text-semantic-danger font-semibold",
+    warning: "text-amber-800 font-semibold",
     neutral: "text-walnut",
   };
 

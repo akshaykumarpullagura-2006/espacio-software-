@@ -60,7 +60,8 @@ export class CrmConfigService {
       { key: "QUOTATION_SENT", name: "Quotation Sent", systemKey: "QUOTATION_SENT", isSystem: true, displayOrder: 8, color: "emerald" },
       { key: "NEGOTIATION", name: "Negotiation", systemKey: "NEGOTIATION", isSystem: true, displayOrder: 9, color: "orange" },
       { key: "WON", name: "Won", systemKey: "WON", isSystem: true, displayOrder: 10, color: "green" },
-      { key: "LOST", name: "Lost", systemKey: "LOST", isSystem: true, displayOrder: 11, color: "rose" },
+      { key: "PROJECT_CREATED", name: "Project Created", systemKey: "PROJECT_CREATED", isSystem: true, displayOrder: 11, color: "emerald" },
+      { key: "LOST", name: "Lost", systemKey: "LOST", isSystem: true, displayOrder: 12, color: "rose" },
     ];
   }
 
