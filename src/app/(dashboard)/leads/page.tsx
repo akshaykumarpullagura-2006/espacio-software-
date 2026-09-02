@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { DataTable } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
 import { LeadFormModal } from "@/components/leads/lead-form-modal";
 import { LeadWorkspace } from "@/components/leads/lead-workspace";
 import {
@@ -20,11 +18,14 @@ import {
   CheckCircle2,
   AlertCircle,
   BarChart3,
-  Percent,
+  PhoneCall,
+  UserX,
+  Filter,
+  RefreshCw,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export default function LeadsDatabasePage() {
+export default function LeadsPage() {
   const [leads, setLeads] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,11 +43,6 @@ export default function LeadsDatabasePage() {
   const [assignedFilter, setAssignedFilter] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // ROI Modal state
-  const [isRoiModalOpen, setIsRoiModalOpen] = useState(false);
-  const [roiData, setRoiData] = useState<any>(null);
-  const [isRoiLoading, setIsRoiLoading] = useState(false);
 
   // Modals & Drawers
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -79,32 +75,12 @@ export default function LeadsDatabasePage() {
     }
   };
 
-  const fetchRoi = async () => {
-    setIsRoiLoading(true);
-    try {
-      const res = await fetch("/api/v1/leads/roi");
-      const json = await res.json();
-      if (json.success) {
-        setRoiData(json.data);
-      }
-    } catch {
-      // quiet handling
-    } finally {
-      setIsRoiLoading(false);
-    }
-  };
-
-  const openRoiModal = () => {
-    setIsRoiModalOpen(true);
-    fetchRoi();
-  };
-
   const fetchLeads = async () => {
     setIsLoading(true);
     try {
       const queryParams = new URLSearchParams({
         page: String(page),
-        limit: "20",
+        limit: "25",
         ...(search ? { search } : {}),
         ...(statusFilter ? { status: statusFilter } : {}),
         ...(sourceFilter ? { source: sourceFilter } : {}),
@@ -148,416 +124,389 @@ export default function LeadsDatabasePage() {
     setIsWorkspaceOpen(true);
   };
 
-  const getPriorityBadgeClass = (p?: string) => {
-    switch (p) {
-      case "URGENT":
-        return "bg-rose-50 text-rose-700 border-rose-200";
-      case "HIGH":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "MEDIUM":
-        return "bg-blue-50 text-blue-700 border-blue-200";
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "NEW":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            New
+          </span>
+        );
+      case "CONTACTED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+            Contacted
+          </span>
+        );
+      case "NOT_CONTACTED":
+      case "NON_CONTACTED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Non Contacted
+          </span>
+        );
+      case "FOLLOW_UP_SCHEDULED":
+      case "FOLLOW_UP":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <Clock className="w-3 h-3 text-blue-500" />
+            Follow-up
+          </span>
+        );
+      case "SITE_VISIT_SCHEDULED":
+      case "SITE_VISIT_COMPLETED":
+      case "SITE_VISIT":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+            <Compass className="w-3 h-3 text-purple-500" />
+            Site Visit
+          </span>
+        );
+      case "QUOTATION_IN_PROGRESS":
+      case "QUOTATION_SENT":
+      case "ESTIMATE_SENT":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Quotation
+          </span>
+        );
+      case "NEGOTIATION":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+            Negotiation
+          </span>
+        );
+      case "WON":
+      case "PROJECT_CREATED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            Won
+          </span>
+        );
+      case "LOST":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            Lost
+          </span>
+        );
+      case "CANCELLED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+            Cancelled
+          </span>
+        );
       default:
-        return "bg-slate-50 text-slate-700 border-slate-200";
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+            {status}
+          </span>
+        );
     }
   };
 
-  const columns = [
+  const columns: any[] = [
     {
-      header: "Lead Ref",
-      accessorKey: "referenceNo" as const,
+      header: "Lead ID",
+      accessorKey: "referenceNo",
       cell: (row: any) => (
-        <span className="font-mono text-xs font-bold text-slate-900">{row.referenceNo}</span>
+        <span className="font-mono text-xs font-bold text-slate-900 tracking-tight">
+          {row.referenceNo}
+        </span>
       ),
     },
     {
       header: "Customer",
-      accessorKey: "clientName" as const,
+      accessorKey: "clientName",
       cell: (row: any) => (
         <div>
           <span className="font-semibold text-slate-900 block leading-tight">{row.clientName}</span>
-          <span className="text-[10px] text-slate-400 font-mono">{row.phone}</span>
+          <span className="text-[11px] text-slate-400 font-mono">{row.phone}</span>
         </div>
       ),
     },
     {
-      header: "Property / Location",
-      accessorKey: "location" as const,
+      header: "Source",
+      accessorKey: "sourceKey",
+      cell: (row: any) => (
+        <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold uppercase tracking-wider border border-slate-200">
+          {row.sourceKey || "Website"}
+        </span>
+      ),
+    },
+    {
+      header: "Location",
+      accessorKey: "location",
+      cell: (row: any) => (
+        <span className="text-xs text-slate-700 font-medium">{row.location || "Bengaluru"}</span>
+      ),
+    },
+    {
+      header: "Requirement",
+      accessorKey: "requirement",
       cell: (row: any) => (
         <div>
-          <span className="text-xs font-medium text-slate-800 block leading-tight">{row.location || "N/A"}</span>
-          <span className="text-[10px] text-slate-400">{row.propertyTypeKey || "Residential"}</span>
+          <span className="text-xs font-medium text-slate-800 block leading-tight">
+            {row.requirement || "Residential Interior"}
+          </span>
+          <span className="text-[10px] text-slate-400 font-mono">
+            {row.propertyTypeKey || "VILLA_INTERIOR"}
+          </span>
         </div>
       ),
     },
     {
-      header: "Budget",
-      accessorKey: "estimatedBudget" as const,
-      isNumeric: true,
-      cell: (row: any) => (
-        <span className="tabular-nums font-bold text-slate-900 text-xs">
-          {row.estimatedBudget ? formatCurrency(row.estimatedBudget) : "TBD"}
-        </span>
-      ),
-    },
-    {
-      header: "Priority",
-      accessorKey: "priority" as const,
-      cell: (row: any) => (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${getPriorityBadgeClass(row.priority)}`}>
-          {row.priority || "MEDIUM"}
-        </span>
-      ),
-    },
-    {
-      header: "Stage",
-      accessorKey: "stage" as const,
-      cell: (row: any) => {
-        const variant =
-          row.stage === "WON"
-            ? "completed"
-            : row.stage === "LOST"
-            ? "danger"
-            : "active";
-        return <Badge variant={variant}>{row.stage}</Badge>;
-      },
-    },
-    {
-      header: "Next Action",
-      accessorKey: "nextFollowUp" as const,
-      cell: (row: any) => {
-        if (row.nextFollowUp) {
-          return (
-            <div className="flex items-center gap-1 text-[11px] text-indigo-700 font-medium">
-              <Clock className="w-3 h-3 text-indigo-500" />
-              <span>{formatDate(row.nextFollowUp.followUpDate)} ({row.nextFollowUp.type})</span>
-            </div>
-          );
-        }
-        if (row.nextSiteVisit) {
-          return (
-            <div className="flex items-center gap-1 text-[11px] text-purple-700 font-medium">
-              <Compass className="w-3 h-3 text-purple-500" />
-              <span>{formatDate(row.nextSiteVisit.visitDate)}</span>
-            </div>
-          );
-        }
-        return <span className="text-[11px] text-slate-400 italic">None scheduled</span>;
-      },
-    },
-    {
-      header: "Assigned To",
-      accessorKey: "assignedTo" as const,
-      cell: (row: any) => (
-        <span className="text-xs text-slate-700 font-medium">
-          {row.assignedTo?.fullName || "Unassigned"}
-        </span>
-      ),
+      header: "Status",
+      accessorKey: "stage",
+      cell: (row: any) => getStatusBadge(row.stage || "NEW"),
     },
   ];
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto select-none">
-      {/* Page Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-walnut/15">
+      {/* PAGE TITLE & ACTIONS */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-charcoal tracking-tight">Leads & CRM Pipeline</h1>
-          <p className="text-xs text-walnut mt-0.5">Enterprise lead directory, qualification tracking, and commercial conversions</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Leads</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Manage client inquiries and sales pipeline</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" leftIcon={<BarChart3 className="w-3.5 h-3.5 text-gold" />} onClick={openRoiModal}>
-            Source ROI
-          </Button>
           <Link href="/leads/pipeline">
-            <Button variant="secondary" size="sm" leftIcon={<LayoutGrid className="w-3.5 h-3.5 text-walnut" />}>
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<LayoutGrid className="w-3.5 h-3.5 text-slate-500" />}
+              className="text-xs h-8"
+            >
               Pipeline Board
             </Button>
           </Link>
-          <Button variant="primary" size="sm" leftIcon={<Plus className="w-3.5 h-3.5 text-charcoal" />} onClick={() => setIsAddModalOpen(true)}>
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-3.5 h-3.5" />}
+            onClick={() => setIsAddModalOpen(true)}
+            className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
             Add Lead
           </Button>
         </div>
       </div>
 
-      {/* KPI METRIC CARDS */}
-      {metrics && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          <div className="p-3.5 bg-white border border-slate-200 rounded-lg shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Total Leads</span>
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-slate-900 font-mono">{metrics.totalLeads}</span>
-              <Users className="w-4 h-4 text-slate-400" />
-            </div>
+      {/* DASHBOARD SUMMARY CARDS (4 PRIMARY CARDS) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-2xs space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Total Leads
+            </span>
+            <Users className="w-4 h-4 text-slate-400" />
           </div>
-
-          <div className="p-3.5 bg-white border border-slate-200 rounded-lg shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Active Pipeline</span>
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-blue-700 font-mono">{metrics.activeLeads}</span>
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-            </div>
+          <div className="text-2xl font-bold text-slate-900 font-mono">
+            {metrics?.totalLeads ?? (isLoading ? "..." : leads.length)}
           </div>
-
-          <div className="p-3.5 bg-white border border-slate-200 rounded-lg shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Follow-ups Due</span>
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-indigo-700 font-mono">{metrics.followUpsDue}</span>
-              <Clock className="w-4 h-4 text-indigo-500" />
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-white border border-slate-200 rounded-lg shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Site Visits</span>
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-purple-700 font-mono">{metrics.siteVisitsScheduled}</span>
-              <Compass className="w-4 h-4 text-purple-500" />
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-white border border-slate-200 rounded-lg shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Pipeline Value</span>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-slate-900 font-mono truncate">
-                {formatCurrency(metrics.pipelineExpectedValue)}
-              </span>
-              <FileCheck className="w-4 h-4 text-slate-400" />
-            </div>
-          </div>
-
-          <div className="p-3.5 bg-white border border-slate-200 rounded-lg shadow-xs space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Won Conversion</span>
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-emerald-700 font-mono">{metrics.conversionRate}%</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FILTER & SEARCH TOOLBAR */}
-      <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-[240px]">
-          <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by Reference, Customer Name, Phone, Email, Location..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900"
-            />
-          </div>
+          <span className="text-[11px] text-slate-400 block">All recorded system inquiries</span>
         </div>
 
-        {/* Dynamic Filters */}
-        <div className="flex items-center gap-2 text-xs">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-md font-medium text-slate-700 outline-none"
-          >
-            <option value="">All Stages</option>
-            <option value="ALL_ACTIVE">All Active Leads</option>
-            {pipelineStages.map((st) => (
-              <option key={st.id || st.systemKey} value={st.systemKey}>
-                {st.name || st.displayName}
-              </option>
-            ))}
-          </select>
+        <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-2xs space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Active Pipeline
+            </span>
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-bold text-emerald-700 font-mono">
+            {metrics?.activeLeads ?? (isLoading ? "..." : "0")}
+          </div>
+          <span className="text-[11px] text-slate-400 block">In-progress sales qualifications</span>
+        </div>
 
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-md font-medium text-slate-700 outline-none"
-          >
-            <option value="">All Priorities</option>
-            <option value="URGENT">Urgent</option>
-            <option value="HIGH">High</option>
-            <option value="MEDIUM">Medium</option>
-            <option value="LOW">Low</option>
-          </select>
+        <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-2xs space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Contacted Leads
+            </span>
+            <PhoneCall className="w-4 h-4 text-sky-500" />
+          </div>
+          <div className="text-2xl font-bold text-sky-700 font-mono">
+            {metrics?.contactedLeads ?? (isLoading ? "..." : "0")}
+          </div>
+          <span className="text-[11px] text-slate-400 block">Engaged in discovery or proposal</span>
+        </div>
 
-          <select
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-            className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-md font-medium text-slate-700 outline-none"
-          >
-            <option value="">All Sources</option>
-            {leadSources.map((s) => (
-              <option key={s.id || s.key} value={s.key}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={assignedFilter}
-            onChange={(e) => setAssignedFilter(e.target.value)}
-            className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-md font-medium text-slate-700 outline-none"
-          >
-            <option value="">All Assignees</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.fullName}
-              </option>
-            ))}
-          </select>
+        <div className="p-4 bg-white border border-slate-200 rounded-lg shadow-2xs space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Non Contacted Leads
+            </span>
+            <UserX className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-bold text-amber-700 font-mono">
+            {metrics?.nonContactedLeads ?? (isLoading ? "..." : "0")}
+          </div>
+          <span className="text-[11px] text-slate-400 block">Pending initial contact</span>
         </div>
       </div>
 
-      {/* DATA TABLE */}
-      <DataTable
-        columns={columns as any}
-        data={leads}
-        keyExtractor={(row: any) => row.id}
-        isLoading={isLoading}
-        onRowClick={handleRowClick}
-        emptyText="No leads found matching your criteria."
-      />
+      {/* SEARCH & FILTERS BAR */}
+      <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-2xs space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[260px]">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by Lead ID, Customer Name, Phone, Email, Location..."
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 pt-2 text-xs text-slate-500">
-          <span>Page {page} of {totalPages}</span>
-          <div className="flex gap-1.5">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
-              Previous
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              <option value="">All Statuses</option>
+              <option value="NEW">New</option>
+              <option value="CONTACTED">Contacted</option>
+              <option value="NOT_CONTACTED">Non Contacted</option>
+              <option value="FOLLOW_UP_SCHEDULED">Follow-up Scheduled</option>
+              <option value="SITE_VISIT_SCHEDULED">Site Visit Scheduled</option>
+              <option value="QUOTATION_IN_PROGRESS">Quotation In Progress</option>
+              <option value="QUOTATION_SENT">Quotation Sent</option>
+              <option value="NEGOTIATION">Negotiation</option>
+              <option value="WON">Won</option>
+              <option value="LOST">Lost</option>
+            </select>
+
+            <select
+              value={sourceFilter}
+              onChange={(e) => {
+                setSourceFilter(e.target.value);
+                setPage(1);
+              }}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
-              Next
-            </Button>
+              <option value="">All Sources</option>
+              <option value="WEBSITE">Website</option>
+              <option value="REFERRAL">Referral</option>
+              <option value="DIRECT_VISIT">Direct Visit</option>
+              <option value="WALK_IN">Walk-in</option>
+              <option value="PHONE_CALL">Phone Call</option>
+              <option value="SOCIAL_MEDIA">Social Media</option>
+              <option value="OTHER">Other</option>
+            </select>
+
+            <select
+              value={priorityFilter}
+              onChange={(e) => {
+                setPriorityFilter(e.target.value);
+                setPage(1);
+              }}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5 text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="">All Priorities</option>
+              <option value="URGENT">Urgent</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+
+            {(search || statusFilter || sourceFilter || priorityFilter || assignedFilter) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7.5 px-2 text-slate-600"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("");
+                  setSourceFilter("");
+                  setPriorityFilter("");
+                  setAssignedFilter("");
+                  setPage(1);
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* CREATE LEAD MODAL */}
+      {/* LEAD LIST TABLE (Clicking row opens side drawer) */}
+      <div className="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
+        <DataTable
+          columns={columns}
+          data={leads}
+          keyExtractor={(row: any) => row.id}
+          isLoading={isLoading}
+          onRowClick={handleRowClick}
+          emptyText="No leads found"
+          emptySubtext={search || statusFilter ? "Try adjusting your filters" : "Create a new lead to begin"}
+        />
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ADD LEAD MODAL */}
       <LeadFormModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => {
+          setIsAddModalOpen(false);
           fetchLeads();
           fetchMetrics();
         }}
       />
 
-      {/* LEAD PROFILE / WORKSPACE DRAWER */}
+      {/* LEAD DETAILS RIGHT-SIDE SLIDING DRAWER */}
       <LeadWorkspace
         leadId={selectedLeadId}
         isOpen={isWorkspaceOpen}
-        onClose={() => {
-          setIsWorkspaceOpen(false);
-          setSelectedLeadId(null);
-        }}
+        onClose={() => setIsWorkspaceOpen(false)}
         onUpdate={() => {
           fetchLeads();
           fetchMetrics();
         }}
       />
-
-      {/* LEAD SOURCE ROI MODAL */}
-      <Modal
-        isOpen={isRoiModalOpen}
-        onClose={() => setIsRoiModalOpen(false)}
-        title="Lead Source ROI & Acquisition Performance"
-        description="Comprehensive analysis of marketing spend vs. pipeline conversion & revenue"
-        maxWidth="2xl"
-      >
-        <div className="space-y-4 select-none">
-          {isRoiLoading ? (
-            <div className="py-12 text-center text-xs text-walnut">Loading Lead Source ROI telemetry...</div>
-          ) : roiData ? (
-            <div className="space-y-4">
-              {/* Summary KPIs */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 bg-cream/50 rounded-lg border border-walnut/15 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-walnut">Total Leads</span>
-                  <p className="text-base font-bold text-charcoal font-mono">{roiData.summary.totalLeads}</p>
-                </div>
-                <div className="p-3 bg-cream/50 rounded-lg border border-walnut/15 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-walnut">Won Leads</span>
-                  <p className="text-base font-bold text-charcoal font-mono">
-                    {roiData.summary.totalWon} ({roiData.summary.overallConversionPct}%)
-                  </p>
-                </div>
-                <div className="p-3 bg-cream/50 rounded-lg border border-walnut/15 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-walnut">Won Revenue</span>
-                  <p className="text-base font-bold text-charcoal font-mono">{formatCurrency(roiData.summary.totalRevenue)}</p>
-                </div>
-                <div className="p-3 bg-gold-soft rounded-lg border border-gold/40 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal">Marketing ROI</span>
-                  <p className="text-base font-bold text-charcoal font-mono">
-                    {roiData.summary.overallRoiPct !== null ? `${roiData.summary.overallRoiPct}%` : "Organic (0 Spend)"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Source Breakdown Table */}
-              <div className="overflow-x-auto border border-walnut/15 rounded-lg bg-offwhite">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-cream/70 border-b border-walnut/15 text-[11px] font-bold text-walnut uppercase tracking-wider">
-                    <tr>
-                      <th className="py-2.5 px-3">Lead Source</th>
-                      <th className="py-2.5 px-3 text-right">Leads</th>
-                      <th className="py-2.5 px-3 text-right">Won</th>
-                      <th className="py-2.5 px-3 text-right">Conv %</th>
-                      <th className="py-2.5 px-3 text-right">Revenue (₹)</th>
-                      <th className="py-2.5 px-3 text-right">Spend (₹)</th>
-                      <th className="py-2.5 px-3 text-right">CPL (₹)</th>
-                      <th className="py-2.5 px-3 text-right">ROI %</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-walnut/10">
-                    {roiData.sources.map((s: any) => (
-                      <tr key={s.sourceKey} className="hover:bg-cream/40 transition-colors">
-                        <td className="py-2.5 px-3 font-semibold text-charcoal">{s.sourceName}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-medium text-charcoal">{s.totalLeads}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-medium text-charcoal">{s.wonLeads}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-medium text-charcoal">{s.conversionRatePct}%</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-charcoal">{formatCurrency(s.wonRevenue)}</td>
-                        <td className="py-2.5 px-3 text-right font-mono text-walnut">{formatCurrency(s.spend)}</td>
-                        <td className="py-2.5 px-3 text-right font-mono text-walnut">{formatCurrency(s.costPerLead)}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold">
-                          {s.roiPct !== null ? (
-                            <span className={s.roiPct >= 0 ? "text-semantic-success" : "text-semantic-danger"}>
-                              {s.roiPct}%
-                            </span>
-                          ) : (
-                            <span className="text-walnut/60 font-normal">N/A</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {roiData.sources.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="py-6 text-center text-xs text-walnut">
-                          No lead source records configured.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className="py-12 text-center text-xs text-walnut">Failed to load ROI telemetry data.</div>
-          )}
-
-          <div className="flex justify-end pt-2 border-t border-walnut/15">
-            <Button variant="secondary" size="sm" onClick={() => setIsRoiModalOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

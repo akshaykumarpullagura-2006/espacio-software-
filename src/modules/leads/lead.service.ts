@@ -576,6 +576,8 @@ export class LeadService {
       wonLeadsList,
       stageGroupCounts,
       sourceGroupCounts,
+      contactedLeads,
+      nonContactedLeads,
     ] = await Promise.all([
       db.lead.count({ where }),
       db.lead.count({ where: { ...where, stage: { notIn: ["WON", "PROJECT_CREATED", "LOST"] } } }),
@@ -620,6 +622,18 @@ export class LeadService {
         where,
         _count: { _all: true },
       }),
+      db.lead.count({
+        where: {
+          ...where,
+          stage: { notIn: ["NEW", "NOT_CONTACTED", "NON_CONTACTED"] },
+        },
+      }),
+      db.lead.count({
+        where: {
+          ...where,
+          stage: { in: ["NEW", "NOT_CONTACTED", "NON_CONTACTED"] },
+        },
+      }),
     ]);
 
     const pipelineExpectedValue = activeLeadsList.reduce((sum, l) => sum + (l.estimatedBudget || 0), 0);
@@ -637,6 +651,8 @@ export class LeadService {
     return {
       totalLeads,
       activeLeads,
+      contactedLeads,
+      nonContactedLeads,
       wonLeads,
       lostLeads,
       followUpsDue,
